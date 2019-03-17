@@ -61,7 +61,7 @@ func TestEventOutOfRangeError_Error(t *testing.T) {
 		EventStop = iota
 	)
 	err := EventOutOfRangeError{ID: EventStop}
-	assert.Equal(t, "eventID " + strconv.Itoa(EventStop) + " out of the range", err)
+	assert.Equal(t, "eventID " + strconv.Itoa(EventStop) + " out of the range", err.Error())
 }
 
 func TestStateOutOfRangeError_Error(t *testing.T) {
