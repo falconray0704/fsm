@@ -16,8 +16,67 @@ package fsm
 
 import (
 	"errors"
+	"github.com/stretchr/testify/assert"
+	"strconv"
 	"testing"
 )
+
+func TestDuplicateCallbackEnterStateError_Error(t *testing.T) {
+	err := DuplicateCallbackEnterStateError{state: "opened"}
+	assert.Equal(t, "duplicate callback of enter state " + "opened", err.Error())
+}
+
+func TestDuplicateCallbackLeaveStateError_Error(t *testing.T) {
+	err := DuplicateCallbackLeaveStateError{state: "opened"}
+	assert.Equal(t, "duplicate callback of leave state " + "opened", err.Error())
+}
+
+func TestDuplicateCallbackAfterEventError_Error(t *testing.T) {
+	err := DuplicateCallbackAfterEventError{event: "open"}
+	assert.Equal(t, "duplicate callback of after event " + "open", err.Error())
+}
+
+func TestDuplicateCallbackBeforeEventError_Error(t *testing.T) {
+	err := DuplicateCallbackBeforeEventError{event: "open"}
+	assert.Equal(t, "duplicate callback of before event " + "open", err.Error())
+}
+
+func TestDuplicateCallbackError_Error(t *testing.T) {
+	err := DuplicateCallbackError{}
+	assert.Equal(t, "duplicate callback register", err.Error())
+}
+
+func TestDuplicateTransitionError_Error(t *testing.T) {
+
+	event := "open"
+	state := "opened"
+
+	err := DuplicateTransitionError{event: event, state: state}
+	assert.Equal(t, "duplicate transition from { " + event + ", " + state + " }", err.Error())
+}
+
+func TestEventOutOfRangeError_Error(t *testing.T) {
+	const (
+		EventPlay = iota
+		EventStop = iota
+	)
+	err := EventOutOfRangeError{ID: EventStop}
+	assert.Equal(t, "eventID " + strconv.Itoa(EventStop) + " out of the range", err)
+}
+
+func TestStateOutOfRangeError_Error(t *testing.T) {
+	const (
+		StatePlay = iota
+		StateStop = iota
+	)
+	err := StateOutOfRangeError{ID: StateStop}
+	assert.Equal(t, "stateID " + strconv.Itoa(StateStop) + " out of the range", err.Error())
+}
+
+func TestCallbackTypeOutOfRangeError_Error(t *testing.T) {
+	err := CallbackTypeOutOfRangeError{Type: CallbackEnterState}
+	assert.Equal(t, "callback type " + strconv.Itoa(CallbackEnterState) + " out of the range", err.Error())
+}
 
 func TestInvalidEventError(t *testing.T) {
 	event := "invalid event"

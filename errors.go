@@ -92,7 +92,7 @@ type CallbackTypeOutOfRangeError struct {
 }
 
 func (e CallbackTypeOutOfRangeError) Error() string {
-	return "callback type " + strconv.Itoa(e.Type) +  " out of range"
+	return "callback type " + strconv.Itoa(e.Type) +  " out of the range"
 }
 
 // InvalidEventError is returned by FSM.Event() when the event cannot be called
