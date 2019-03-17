@@ -1,0 +1,12 @@
+workspace:
+  base: /go
+  path: src/github.com/falconray0704/fsm
+
+pipeline:
+  test:
+    image: golang:latest
+    commands:
+      - make dependencies
+      - make test
+      - make cover
+
