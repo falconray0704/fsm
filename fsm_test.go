@@ -115,7 +115,27 @@ func TestNewFSM(t *testing.T) {
 		EventStrClose = "close"
 	)
 
+
 	fsm, err := NewFSM(
+		StateStartID,
+		EventMap{
+			EventStartID: EventStartStr,
+			EventOpen: EventStrOpen,
+			EventPause: EventStrPause,
+			EventClose: EventStrClose },
+		StateMap{
+			StateStartID: StateStartStr,
+			StateOpened: StateStrOpened,
+			StatePaused: StateStrPaused,
+			StateClosed: StateStrClosed },
+		Events{
+		},
+		Callbacks{
+		})
+	assert.Equal(t, StateStartReserveError{}, err, "Init state should not used reserve StateStartID")
+	assert.Nil(t, fsm, "Init state used reserve StateStartID expect nil fsm")
+
+	fsm, err = NewFSM(
 		StateClosed,
 		EventMap{
 			EventStartID: EventStartStr,

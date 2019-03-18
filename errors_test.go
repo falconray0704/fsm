@@ -27,8 +27,8 @@ func TestEventStartReserveMissingError_Error(t *testing.T) {
 }
 
 func TestEventStartReserveError_Error(t *testing.T) {
-	err := EventStartReserveMissingError{}
-	assert.Equal(t, `Event {EventID:fsm.EventStartID, Name:fsm.EventStartStr} reserve and should be included in eventMap`, err.Error())
+	err := EventStartReserveError{}
+	assert.Equal(t, `Event {ID:0, Name:"EventStart"} reserve for all event callback Index`, err.Error())
 }
 
 func TestStateStartReserveMissingError_Error(t *testing.T) {
