@@ -95,6 +95,13 @@ func TestNewFSM(t *testing.T) {
 	err = fsm.SetState(StateClosed)
 	assert.NoError(t, err, "Set valid state StateClosed expect no error")
 
+	// Event() ---> EventOutOfRangeError
+	err = fsm.Event(EventNonExist)
+	assert.Equal(t, EventOutOfRangeError{ID:EventNonExist}, err, "Non exist event expect EventOutOfRangeError")
+
+	// Event() ---> InTransitionError
+	err = fsm.Event(EventClose)
+	assert.Equal(t, InvalidEventError{Event:EventStrClose, State: StateStrClosed}, err,"Not registered transition expect InvalidEventError")
 
 	// closed ---> opened, success
 	err = fsm.Event(EventOpen)

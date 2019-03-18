@@ -365,7 +365,7 @@ func (f *FSM) Event(eventID int, args ...interface{}) error {
 	)
 
 	if eventName, ok = f.eventMap[eventID]; !ok {
-		return EventOutOfRangeError{}
+		return EventOutOfRangeError{ID: eventID}
 	}
 
 	f.eventMu.Lock()
