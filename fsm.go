@@ -40,7 +40,7 @@ type EventID = int
 type EventMap map[EventID]string
 type StateMap map[StateID]string
 
-type CallbackMap map[cKey]Callback
+type CallbackMap map[CKey]Callback
 
 // FSM is the state machine that holds the current state.
 //
@@ -146,7 +146,7 @@ type Callbacks map[CallBackDesc]Callback
 // which version of the callback will end up in the internal map. This is due
 // to the psuedo random nature of Go maps. No checking for multiple keys is
 // currently performed.
-func NewFSM(initState int, eventMap EventMap, stateMap StateMap,
+func NewFSM(initState StateID, eventMap EventMap, stateMap StateMap,
 			eventTransitions []EventDesc,
 			callbackDescMap map[CallBackDesc]Callback) (*FSM, error) {
 	var (
@@ -154,7 +154,17 @@ func NewFSM(initState int, eventMap EventMap, stateMap StateMap,
 		err error
 	)
 
-	if  _, ok = stateMap[initState]; !ok {
+	if err = validateEventMap(eventMap); err != nil {
+		return nil, err
+	}
+
+	if err = validateStateMap(stateMap); err != nil {
+		return nil, err
+	}
+
+	if initState == StateStartID {
+		return nil, StateStartReserveError{}
+	} else if  _, ok = stateMap[initState]; !ok {
 		return nil, StateOutOfRangeError{ID: initState}
 	}
 
@@ -209,22 +219,6 @@ func (f *FSM) buildUpCallbackMap(callbackDescMap map[CallBackDesc]Callback) {
 	}
 }
 
-/*
-func registerCallback(callbackMap CallbackMap, id int, callback Callback) error {
-	var (
-		ok bool
-	)
-
-	if _, ok = callbackMap[id]; ok {
-		callbackMap[id] = callback
-		return DuplicateCallbackError{}
-	}
-
-	callbackMap[id] = callback
-	return nil
-}
-*/
-
 func (f *FSM) buildUpTransitions(eventTransitions []EventDesc) error {
 	var (
 		ok bool
@@ -243,20 +237,42 @@ func (f *FSM) buildUpTransitions(eventTransitions []EventDesc) error {
 	return nil
 }
 
+func validateStateMap(stateMap StateMap) error {
+	name, ok := stateMap[StateStartID]
+	if !ok || name != StateStartStr {
+		return StateStartReserveMissingError{}
+	}
+	return nil
+}
+
+func validateEventMap(eventMap EventMap) error {
+	name, ok := eventMap[EventStartID]
+	if !ok || name != EventStartStr {
+		return EventStartReserveMissingError{}
+	}
+	return nil
+}
+
 func validateEventTransitionsMap(eventTransitions []EventDesc, eventMap EventMap, stateMap StateMap) error {
 	var (
 		ok bool
 		ed EventDesc
 	)
 	for _, ed = range eventTransitions {
-		if _, ok = eventMap[ed.IDEvent]; !ok {
+		if ed.IDEvent == EventStartID {
+			return EventStartReserveError{}
+		} else if ed.IDDst == StateStartID {
+			return StateStartReserveError{}
+		} else if _, ok = eventMap[ed.IDEvent]; !ok {
 			return EventOutOfRangeError{ID: ed.IDEvent}
-		}
-		if _, ok = stateMap[ed.IDDst]; !ok {
+		} else if _, ok = stateMap[ed.IDDst]; !ok {
 			return StateOutOfRangeError{ID: ed.IDDst}
 		}
+
 		for _, srcState := range ed.IDsSrc {
-			if _, ok = stateMap[srcState]; !ok {
+			if srcState == StateStartID {
+				return StateStartReserveError{}
+			} else if _, ok = stateMap[srcState]; !ok {
 				return StateOutOfRangeError{ID: srcState}
 			}
 		}
@@ -272,11 +288,11 @@ func validateCallbackMap(callbackDescMap map[CallBackDesc]Callback, eventMap Eve
 	for desc := range callbackDescMap {
 		switch desc.IDCallbackType {
 		case CallbackBeforeEvent, CallbackAfterEvent:
-			if _, ok = eventMap[desc.ID]; !ok && desc.ID != CKeyAll {
+			if _, ok = eventMap[desc.ID]; !ok {
 				return EventOutOfRangeError{ID: desc.ID}
 			}
 		case CallbackLeaveState, CallbackEnterState:
-			if _, ok = stateMap[desc.ID]; !ok && desc.ID != CKeyAll {
+			if _, ok = stateMap[desc.ID]; !ok {
 				return StateOutOfRangeError{ID: desc.ID}
 			}
 		default:
@@ -303,6 +319,11 @@ func (f *FSM) Is(stateID int) bool {
 // SetState allows the user to move to the given state from current state.
 // The call does not trigger any callbacks, if defined.
 func (f *FSM) SetState(stateID int) error {
+
+	if stateID == StateStartID {
+		return StateStartReserveError{}
+	}
+
 	if _, ok :=  f.stateMap[stateID]; !ok {
 		return StateOutOfRangeError{ID: stateID}
 	}
@@ -446,14 +467,14 @@ func (f *FSM) doTransition() error {
 // beforeEventCallbacks calls the before_ callbacks, first the named then the
 // general version.
 func (f *FSM) beforeEventCallbacks(e *Event) error {
-	if fn, ok := f.callbacksBeforeEvent[cKey(e.Event + 1)]; ok && fn != nil {
+	if fn, ok := f.callbacksBeforeEvent[CKey(e.Event)]; ok && fn != nil {
 		fn(e)
 		if e.canceled {
 			return CanceledError{e.Err}
 		}
 	}
 
-	if fn, ok := f.callbacksBeforeEvent[CKeyAll]; ok && fn != nil {
+	if fn, ok := f.callbacksBeforeEvent[StateStartID]; ok && fn != nil {
 		fn(e)
 		if e.canceled {
 			return CanceledError{e.Err}
@@ -465,7 +486,7 @@ func (f *FSM) beforeEventCallbacks(e *Event) error {
 // leaveStateCallbacks calls the leave_ callbacks, first the named then the
 // general version.
 func (f *FSM) leaveStateCallbacks(e *Event) error {
-	if fn, ok := f.callbacksLeaveState[cKey(f.current + 1)]; ok && fn != nil {
+	if fn, ok := f.callbacksLeaveState[CKey(f.current)]; ok && fn != nil {
 		fn(e)
 		if e.canceled {
 			return CanceledError{e.Err}
@@ -474,7 +495,7 @@ func (f *FSM) leaveStateCallbacks(e *Event) error {
 		}
 	}
 
-	if fn, ok := f.callbacksLeaveState[CKeyAll]; ok && fn != nil {
+	if fn, ok := f.callbacksLeaveState[StateStartID]; ok && fn != nil {
 		fn(e)
 		if e.canceled {
 			return CanceledError{e.Err}
@@ -488,10 +509,10 @@ func (f *FSM) leaveStateCallbacks(e *Event) error {
 // enterStateCallbacks calls the enter_ callbacks, first the named then the
 // general version.
 func (f *FSM) enterStateCallbacks(e *Event) {
-	if fn, ok := f.callbacksEnterState[cKey(f.current + 1)]; ok && fn != nil {
+	if fn, ok := f.callbacksEnterState[CKey(f.current)]; ok && fn != nil {
 		fn(e)
 	}
-	if fn, ok := f.callbacksEnterState[CKeyAll]; ok && fn != nil {
+	if fn, ok := f.callbacksEnterState[StateStartID]; ok && fn != nil {
 		fn(e)
 	}
 }
@@ -499,10 +520,10 @@ func (f *FSM) enterStateCallbacks(e *Event) {
 // afterEventCallbacks calls the after_ callbacks, first the named then the
 // general version.
 func (f *FSM) afterEventCallbacks(e *Event) {
-	if fn, ok := f.callbacksAfterEvent[cKey(e.Event + 1)]; ok && fn != nil {
+	if fn, ok := f.callbacksAfterEvent[CKey(e.Event)]; ok && fn != nil {
 		fn(e)
 	}
-	if fn, ok := f.callbacksAfterEvent[CKeyAll]; ok && fn != nil {
+	if fn, ok := f.callbacksAfterEvent[EventStartID]; ok && fn != nil {
 		fn(e)
 	}
 }
@@ -520,9 +541,13 @@ type CallbackType = int
 
 // cKey is a callback key used for indexing the callback corresponding
 // to event or state, must start from 1, 0 use for all event and state callback
-type cKey = int
+type CKey = int
 const (
-	CKeyAll cKey = 0 // Index 0 reserve for all event or status callback
+	//CKeyAll cKey = 0 // Index 0 reserve for all event or status callback
+	EventStartID CKey = 0 // Event ID start Index, reserve for all event callback index
+	EventStartStr = "EventStart"
+	StateStartID CKey = 0 // State ID start Index, reserve for all state callback index
+	StateStartStr = "StateStart"
 )
 
 // eKey is a struct key used for storing the transition map.

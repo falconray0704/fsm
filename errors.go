@@ -71,6 +71,34 @@ func (e DuplicateTransitionError) Error() string {
 	return "duplicate transition from { " + e.event + ", " + e.state + " }"
 }
 
+type StateStartReserveError struct {
+}
+
+func (e StateStartReserveError) Error() string {
+	return `State {ID:0, Name:"StateStart"} reserve for all state callback Index`
+}
+
+type StateStartReserveMissingError struct {
+}
+
+func (e StateStartReserveMissingError) Error() string {
+	return `State {StateID:fsm.StateStartID, Name:fsm.StateStartStr} reserve and should be included in stateMap`
+}
+
+type EventStartReserveMissingError struct {
+}
+
+func (e EventStartReserveMissingError) Error() string {
+	return `Event {EventID:fsm.EventStartID, Name:fsm.EventStartStr} reserve and should be included in eventMap`
+}
+
+type EventStartReserveError struct {
+}
+
+func (e EventStartReserveError) Error() string {
+	return `Event {ID:0, Name:"EventStart"} reserve for all event callback Index`
+}
+
 type EventOutOfRangeError struct {
 	ID EventID
 }
