@@ -378,6 +378,191 @@ func TestNewFSM_buildUpCallbackMap_DuplicateBeforeEventError(t *testing.T) {
 }
 */
 
+
+func TestNewFSM_buildUpTransitions_DuplicateTransitionError(t *testing.T) {
+	const (
+		StateOpened = iota
+		StatePaused = iota
+		StateClosed = iota
+		StateNonExist
+	)
+	const (
+		StateStrOpened = "opened"
+		StateStrPaused = "paused"
+		StateStrClosed = "closed"
+	)
+	const (
+		EventOpen = iota
+		EventPause = iota
+		EventClose = iota
+		EventNonExist
+	)
+	const (
+		EventStrOpen = "open"
+		EventStrPause = "paused"
+		EventStrClose = "close"
+	)
+
+	fsm, err := NewFSM(
+		StateClosed,
+		EventMap{
+			EventOpen: EventStrOpen,
+			EventPause: EventStrPause,
+			EventClose: EventStrClose },
+		StateMap{
+			StateOpened: StateStrOpened,
+			StatePaused: StateStrPaused,
+			StateClosed: StateStrClosed },
+		Events{
+			{IDEvent: EventOpen, IDsSrc:[]StateID{StateClosed, StatePaused}, IDDst:StateOpened},
+			{IDEvent: EventOpen, IDsSrc:[]StateID{StateClosed, StatePaused}, IDDst:StateOpened},
+		},
+		Callbacks{
+			{IDCallbackType: CallbackBeforeEvent, ID: EventOpen}: func(e *Event) { fmt.Println("Before event open.")},
+		})
+	assert.Equal(t,DuplicateTransitionError{event:EventStrOpen, state:StateStrClosed}, err, "Duplicate transition NewFSM() expect DuplicateTransitionError.")
+	assert.Nil(t, fsm, "Duplicate transition NewFSM() expect nil fsm.")
+
+}
+
+
+func TestNewFSM_validateCallbackMap_StateOutOfRangeError(t *testing.T) {
+	const (
+		StateOpened = iota
+		StatePaused = iota
+		StateClosed = iota
+		StateNonExist
+	)
+	const (
+		StateStrOpened = "opened"
+		StateStrPaused = "paused"
+		StateStrClosed = "closed"
+	)
+	const (
+		EventOpen = iota
+		EventPause = iota
+		EventClose = iota
+		EventNonExist
+	)
+	const (
+		EventStrOpen = "open"
+		EventStrPause = "paused"
+		EventStrClose = "close"
+	)
+
+	fsm, err := NewFSM(
+		StateClosed,
+		EventMap{
+			EventOpen: EventStrOpen,
+			EventPause: EventStrPause,
+			EventClose: EventStrClose },
+		StateMap{
+			StateOpened: StateStrOpened,
+			StatePaused: StateStrPaused,
+			StateClosed: StateStrClosed },
+		Events{
+			{IDEvent: EventOpen, IDsSrc:[]StateID{StateClosed, StatePaused}, IDDst:StateOpened},
+		},
+		Callbacks{
+			{IDCallbackType: CallbackBeforeEvent, ID: EventOpen}: func(e *Event) { fmt.Println("Before event open.")},
+			{IDCallbackType: CallbackLeaveState, ID: StateNonExist}: func(e *Event) { fmt.Println("Leave state opened.")},
+		})
+	assert.Equal(t, StateOutOfRangeError{ID: StateNonExist}, err, "Non exist state callback register NewFSM() expect StateOutOfRangeError.")
+	assert.Nil(t, fsm, "Non exist state callback register NewFSM() expect nil fsm.")
+
+}
+
+func TestNewFSM_validateCallbackMap_EventOutOfRangeError(t *testing.T) {
+	const (
+		StateOpened = iota
+		StatePaused = iota
+		StateClosed = iota
+		StateNonExist
+	)
+	const (
+		StateStrOpened = "opened"
+		StateStrPaused = "paused"
+		StateStrClosed = "closed"
+	)
+	const (
+		EventOpen = iota
+		EventPause = iota
+		EventClose = iota
+		EventNonExist
+	)
+	const (
+		EventStrOpen = "open"
+		EventStrPause = "paused"
+		EventStrClose = "close"
+	)
+
+	fsm, err := NewFSM(
+		StateClosed,
+		EventMap{
+			EventOpen: EventStrOpen,
+			EventPause: EventStrPause,
+			EventClose: EventStrClose },
+		StateMap{
+			StateOpened: StateStrOpened,
+			StatePaused: StateStrPaused,
+			StateClosed: StateStrClosed },
+		Events{
+			{IDEvent: EventOpen, IDsSrc:[]StateID{StateClosed, StatePaused}, IDDst:StateOpened},
+		},
+		Callbacks{
+			{IDCallbackType: CallbackBeforeEvent, ID: EventOpen}: func(e *Event) { fmt.Println("Before event open.")},
+			{IDCallbackType: CallbackBeforeEvent, ID: EventNonExist}: func(e *Event) { fmt.Println("Before event open.")},
+		})
+	assert.Equal(t, EventOutOfRangeError{ID: EventNonExist}, err, "Non exist event callback register NewFSM() expect EventOutOfRangeError.")
+	assert.Nil(t, fsm, "Non exist event callback register NewFSM() expect nil fsm.")
+
+}
+
+func TestNewFSM_validateCallbackMap_CallbackTypeOutOfRangeError(t *testing.T) {
+	const (
+		StateOpened = iota
+		StatePaused = iota
+		StateClosed = iota
+		StateNonExist
+	)
+	const (
+		StateStrOpened = "opened"
+		StateStrPaused = "paused"
+		StateStrClosed = "closed"
+	)
+	const (
+		EventOpen = iota
+		EventPause = iota
+		EventClose = iota
+		EventNonExist
+	)
+	const (
+		EventStrOpen = "open"
+		EventStrPause = "paused"
+		EventStrClose = "close"
+	)
+
+	fsm, err := NewFSM(
+		StateClosed,
+		EventMap{
+			EventOpen: EventStrOpen,
+			EventPause: EventStrPause,
+			EventClose: EventStrClose },
+		StateMap{
+			StateOpened: StateStrOpened,
+			StatePaused: StateStrPaused,
+			StateClosed: StateStrClosed },
+		Events{
+			{IDEvent: EventOpen, IDsSrc:[]StateID{StateClosed, StatePaused}, IDDst:StateOpened},
+		},
+		Callbacks{
+			{IDCallbackType: CallbackTypeSum, ID: EventOpen}: func(e *Event) { fmt.Println("Before event open.")},
+		})
+	assert.Equal(t,CallbackTypeOutOfRangeError{Type: CallbackTypeSum}, err, "Non exist callback type register NewFSM() expect CallbackTypeOutOfRangeError.")
+	assert.Nil(t, fsm, "Non exist callback type register NewFSM() expect nil fsm.")
+
+}
+
 func TestNewFSM_validateEventTransitionsMap_nonExistSrcStateError(t *testing.T) {
 	const (
 		StateOpened = iota
