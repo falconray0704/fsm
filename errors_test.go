@@ -21,6 +21,26 @@ import (
 	"testing"
 )
 
+func TestEventStartReserveMissingError_Error(t *testing.T) {
+	err := EventStartReserveMissingError{}
+	assert.Equal(t, `Event {EventID:fsm.EventStartID, Name:fsm.EventStartStr} reserve and should be included in eventMap`, err.Error())
+}
+
+func TestEventStartReserveError_Error(t *testing.T) {
+	err := EventStartReserveMissingError{}
+	assert.Equal(t, `Event {EventID:fsm.EventStartID, Name:fsm.EventStartStr} reserve and should be included in eventMap`, err.Error())
+}
+
+func TestStateStartReserveMissingError_Error(t *testing.T) {
+	err := StateStartReserveMissingError{}
+	assert.Equal(t, `State {StateID:fsm.StateStartID, Name:fsm.StateStartStr} reserve and should be included in stateMap`, err.Error() )
+}
+
+func TestStateStartReserveError_Error(t *testing.T) {
+	err := StateStartReserveError{}
+	assert.Equal(t, `State {ID:0, Name:"StateStart"} reserve for all state callback Index`, err.Error() )
+}
+
 func TestDuplicateCallbackEnterStateError_Error(t *testing.T) {
 	err := DuplicateCallbackEnterStateError{state: "opened"}
 	assert.Equal(t, "duplicate callback of enter state " + "opened", err.Error())

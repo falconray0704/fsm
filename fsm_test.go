@@ -164,6 +164,8 @@ func TestNewFSM(t *testing.T) {
 	assert.NoError(t, err, "Set valid state StateOpened expect no error")
 	err = fsm.SetState(StateClosed)
 	assert.NoError(t, err, "Set valid state StateClosed expect no error")
+	err = fsm.SetState(StateStartID)
+	assert.Equal(t,StateStartReserveError{}, err, "Set reserve state StateStartID expect StateStartReserveError")
 
 	// Event() ---> EventOutOfRangeError
 	err = fsm.Event(EventNonExist)
@@ -564,6 +566,283 @@ func TestNewFSM_validateEventTransitionsMap_nonExistEventError(t *testing.T) {
 	assert.Nil(t, fsm, "Non exist event NewFSM() expect nil fsm.")
 
 }
+
+func TestNewFSM_validateEventTransitionsMap_Src_StateStartReserveError(t *testing.T) {
+	const (
+		StateStartID = iota
+		StateOpened = iota
+		StatePaused = iota
+		StateClosed = iota
+		StateNonExist
+	)
+	const (
+		StateStrOpened = "opened"
+		StateStrPaused = "paused"
+		StateStrClosed = "closed"
+	)
+	const (
+		EventStartID = iota
+		EventOpen = iota
+		EventPause = iota
+		EventClose = iota
+		EventNonExist
+	)
+	const (
+		EventStrOpen = "open"
+		EventStrPause = "paused"
+		EventStrClose = "close"
+	)
+
+	fsm, err := NewFSM(
+		StateClosed,
+		EventMap{
+			EventStartID: EventStartStr,
+			EventOpen: EventStrOpen,
+			EventPause: EventStrPause,
+			EventClose: EventStrClose },
+		StateMap{
+			StateStartID: StateStartStr,
+			StateOpened: StateStrOpened,
+			StatePaused: StateStrPaused,
+			StateClosed: StateStrClosed },
+		Events{
+			{IDEvent: EventOpen, IDsSrc:[]StateID{StateClosed, StatePaused, StateStartID}, IDDst:StateOpened},
+		},
+		Callbacks{
+		})
+	assert.Equal(t, StateStartReserveError{}, err, "Reserve state NewFSM() expect StateStartReserveError.")
+	assert.Nil(t, fsm, "Reserve state NewFSM() expect nil fsm.")
+
+}
+
+func TestNewFSM_validateEventTransitionsMap_StateStartReserveError(t *testing.T) {
+	const (
+		StateStartID = iota
+		StateOpened = iota
+		StatePaused = iota
+		StateClosed = iota
+		StateNonExist
+	)
+	const (
+		StateStrOpened = "opened"
+		StateStrPaused = "paused"
+		StateStrClosed = "closed"
+	)
+	const (
+		EventStartID = iota
+		EventOpen = iota
+		EventPause = iota
+		EventClose = iota
+		EventNonExist
+	)
+	const (
+		EventStrOpen = "open"
+		EventStrPause = "paused"
+		EventStrClose = "close"
+	)
+
+	fsm, err := NewFSM(
+		StateClosed,
+		EventMap{
+			EventStartID: EventStartStr,
+			EventOpen: EventStrOpen,
+			EventPause: EventStrPause,
+			EventClose: EventStrClose },
+		StateMap{
+			StateStartID: StateStartStr,
+			StateOpened: StateStrOpened,
+			StatePaused: StateStrPaused,
+			StateClosed: StateStrClosed },
+		Events{
+			{IDEvent: EventOpen, IDsSrc:[]StateID{StateClosed, StatePaused}, IDDst:StateStartID},
+		},
+		Callbacks{
+		})
+	assert.Equal(t, StateStartReserveError{}, err, "Reserve state NewFSM() expect StateStartReserveError.")
+	assert.Nil(t, fsm, "Reserve state NewFSM() expect nil fsm.")
+
+}
+
+func TestNewFSM_validateEventTransitionsMap_EventStartReserveError(t *testing.T) {
+	const (
+		StateStartID = iota
+		StateOpened = iota
+		StatePaused = iota
+		StateClosed = iota
+		StateNonExist
+	)
+	const (
+		StateStrOpened = "opened"
+		StateStrPaused = "paused"
+		StateStrClosed = "closed"
+	)
+	const (
+		EventStartID = iota
+		EventOpen = iota
+		EventPause = iota
+		EventClose = iota
+		EventNonExist
+	)
+	const (
+		EventStrOpen = "open"
+		EventStrPause = "paused"
+		EventStrClose = "close"
+	)
+
+	fsm, err := NewFSM(
+		StateClosed,
+		EventMap{
+			EventStartID: EventStartStr,
+			EventOpen: EventStrOpen,
+			EventPause: EventStrPause,
+			EventClose: EventStrClose },
+		StateMap{
+			StateStartID: StateStartStr,
+			StateOpened: StateStrOpened,
+			StatePaused: StateStrPaused,
+			StateClosed: StateStrClosed },
+		Events{
+			{IDEvent: EventStartID, IDsSrc:[]StateID{StateClosed, StatePaused}, IDDst:StateOpened},
+		},
+		Callbacks{
+		})
+	assert.Equal(t, EventStartReserveError{}, err, "Reserve event NewFSM() expect EventStartReserveError.")
+	assert.Nil(t, fsm, "Reserve event NewFSM() expect nil fsm.")
+
+}
+
+func TestNewFSM_validateStateMap_StateStartReserveMissingError(t *testing.T) {
+	const (
+		StateStartID = iota
+		StateOpened = iota
+		StatePaused = iota
+		StateClosed = iota
+		StateNonExist
+	)
+	const (
+		StateStrOpened = "opened"
+		StateStrPaused = "paused"
+		StateStrClosed = "closed"
+	)
+	const (
+		EventStartID = iota
+		EventOpen = iota
+		EventPause = iota
+		EventClose = iota
+		EventNonExist
+	)
+	const (
+		EventStrOpen = "open"
+		EventStrPause = "paused"
+		EventStrClose = "close"
+	)
+
+	fsm, err := NewFSM(
+		StateClosed,
+		EventMap{
+			EventStartID: EventStartStr,
+			EventOpen: EventStrOpen,
+			EventPause: EventStrPause,
+			EventClose: EventStrClose },
+		StateMap{
+			StateOpened: StateStrOpened,
+			StatePaused: StateStrPaused,
+			StateClosed: StateStrClosed },
+		Events{
+			{IDEvent: EventOpen, IDsSrc:[]StateID{StateClosed, StatePaused}, IDDst:StateOpened},
+		},
+		Callbacks{
+		})
+	assert.Equal(t, StateStartReserveMissingError{}, err, "Missing reserve state NewFSM() expect StateStartReserveMissingError.")
+	assert.Nil(t, fsm, "Missing reserve state NewFSM() expect nil fsm.")
+
+	fsm, err = NewFSM(
+		StateClosed,
+		EventMap{
+			EventStartID: EventStartStr,
+			EventOpen: EventStrOpen,
+			EventPause: EventStrPause,
+			EventClose: EventStrClose },
+		StateMap{
+			StateStartID: "hello",
+			StateOpened: StateStrOpened,
+			StatePaused: StateStrPaused,
+			StateClosed: StateStrClosed },
+		Events{
+			{IDEvent: EventOpen, IDsSrc:[]StateID{StateClosed, StatePaused}, IDDst:StateOpened},
+		},
+		Callbacks{
+		})
+	assert.Equal(t, StateStartReserveMissingError{}, err, "Reserve state without reserve name NewFSM() expect StateStartReserveMissingError.")
+	assert.Nil(t, fsm, "Reserve state without  reserve name NewFSM() expect nil fsm.")
+}
+
+func TestNewFSM_validateEventMap_EventStartReserveMissingError(t *testing.T) {
+	const (
+		StateStartID = iota
+		StateOpened = iota
+		StatePaused = iota
+		StateClosed = iota
+		StateNonExist
+	)
+	const (
+		StateStrOpened = "opened"
+		StateStrPaused = "paused"
+		StateStrClosed = "closed"
+	)
+	const (
+		EventStartID = iota
+		EventOpen = iota
+		EventPause = iota
+		EventClose = iota
+		EventNonExist
+	)
+	const (
+		EventStrOpen = "open"
+		EventStrPause = "paused"
+		EventStrClose = "close"
+	)
+
+	fsm, err := NewFSM(
+		StateClosed,
+		EventMap{
+			EventOpen: EventStrOpen,
+			EventPause: EventStrPause,
+			EventClose: EventStrClose },
+		StateMap{
+			StateStartID: StateStartStr,
+			StateOpened: StateStrOpened,
+			StatePaused: StateStrPaused,
+			StateClosed: StateStrClosed },
+		Events{
+			{IDEvent: EventOpen, IDsSrc:[]StateID{StateClosed, StatePaused}, IDDst:StateOpened},
+		},
+		Callbacks{
+		})
+	assert.Equal(t, EventStartReserveMissingError{}, err, "Missing reserve event NewFSM() expect EventStartReserveMissingError.")
+	assert.Nil(t, fsm, "Missing reserve event NewFSM() expect nil fsm.")
+
+	fsm, err = NewFSM(
+		StateClosed,
+		EventMap{
+			EventStartID: "hello",
+			EventOpen: EventStrOpen,
+			EventPause: EventStrPause,
+			EventClose: EventStrClose },
+		StateMap{
+			StateStartID: StateStartStr,
+			StateOpened: StateStrOpened,
+			StatePaused: StateStrPaused,
+			StateClosed: StateStrClosed },
+		Events{
+			{IDEvent: EventOpen, IDsSrc:[]StateID{StateClosed, StatePaused}, IDDst:StateOpened},
+		},
+		Callbacks{
+		})
+	assert.Equal(t, EventStartReserveMissingError{}, err, "Reserve event without reserve name NewFSM() expect EventStartReserveMissingError.")
+	assert.Nil(t, fsm, "Reserve event without  reserve name NewFSM() expect nil fsm.")
+}
+
 
 func TestNewFSM_initStateError(t *testing.T) {
 	const (
