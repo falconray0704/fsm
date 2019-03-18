@@ -23,7 +23,6 @@ import (
 //	. "github.com/falconray0704/fsm"
 )
 
-/*
 func TestFSM_Transition(t *testing.T) {
 	const (
 		StateStartID = iota
@@ -58,7 +57,7 @@ func TestFSM_Transition(t *testing.T) {
 			EventPause: EventStrPause,
 			EventClose: EventStrClose },
 		StateMap{
-			StateStartID, StateStartStr,
+			StateStartID: StateStartStr,
 			StateOpened: StateStrOpened,
 			StatePaused: StateStrPaused,
 			StateClosed: StateStrClosed },
@@ -74,7 +73,7 @@ func TestFSM_Transition(t *testing.T) {
 			{IDCallbackType: CallbackBeforeEvent, ID: EventClose}: func(e *Event) { fmt.Println("Before event close.")},
 			{IDCallbackType: CallbackLeaveState, ID: StateOpened}: func(e *Event) { fmt.Println("Leave state opened.")},
 			{IDCallbackType: CallbackLeaveState, ID: StatePaused}: func(e *Event) { fmt.Println("Leave state paused.")},
-			{IDCallbackType: CallbackLeaveState, ID: StateClosed}: func(e *Event) { fmt.Println("Leave state closed.")},
+			{IDCallbackType: CallbackLeaveState, ID: StateClosed}: func(e *Event) { fmt.Println("Leave state closed."); e.Async()},
 			{IDCallbackType: CallbackEnterState, ID: StateOpened}: func(e *Event) { fmt.Println("Got into state opened.")},
 			{IDCallbackType: CallbackEnterState, ID: StatePaused}: func(e *Event) { fmt.Println("Got into state paused.")},
 			{IDCallbackType: CallbackEnterState, ID: StateClosed}: func(e *Event) { fmt.Println("Got into state closed.")},
@@ -83,11 +82,21 @@ func TestFSM_Transition(t *testing.T) {
 			{IDCallbackType: CallbackAfterEvent, ID: EventClose}: func(e *Event) { fmt.Println("After event close.")},
 		})
 	assert.NoError(t, err, "NewFSM() expect no error.")
+	err = fsm.Event(EventOpen)
+	assert.Equal(t, AsyncError{}, err, "Async() transition expect AsyncError")
+	assert.Equal(t, "async started", err.Error(), "Async Transition expect nil error inside AsyncError")
+	assert.Equal(t, StateStrClosed, fsm.Current(), "Async() transition expect keep same state before Transition()")
+
+	// InTransitionError during in Async Transition
+	err = fsm.Event(EventOpen)
+	assert.Equal(t, InTransitionError{Event: EventStrOpen}, err, "During Async Transition expect InTransitionError if another Event happen")
+
+	// Async Transition()
+	err = fsm.Transition()
+	assert.NoError(t, err, "Transition() expect no error ")
+	assert.Equal(t, StateStrOpened, fsm.Current(), "Async() Transition() expect StateStrOpened")
 
 }
-*/
-
-
 
 func TestNewFSM(t *testing.T) {
 	const (
