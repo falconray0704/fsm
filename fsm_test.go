@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package fsm_test
+package fsm
 
 import (
 	"fmt"
@@ -20,11 +20,8 @@ import (
 	"log"
 	"reflect"
 	"testing"
-	. "github.com/falconray0704/fsm"
+//	. "github.com/falconray0704/fsm"
 )
-
-
-
 
 
 func TestNewFSM(t *testing.T) {
@@ -139,6 +136,420 @@ func TestNewFSM(t *testing.T) {
 	assert.NoError(t, err, "Close transition from paused expect success.")
 	assert.Equal(t, StateStrClosed, fsm.Current(), "Close transition expect closed")
 
+
+}
+
+/*
+func TestNewFSM_buildUpCallbackMap_DuplicateEnterStateError(t *testing.T) {
+	const (
+		StateAll	= iota
+		StateOpened = iota
+		StatePaused = iota
+		StateClosed = iota
+		StateNonExist
+	)
+	const (
+		StateStrOpened = "opened"
+		StateStrPaused = "paused"
+		StateStrClosed = "closed"
+	)
+	const (
+		EventAll	= iota
+		EventOpen = iota
+		EventPause = iota
+		EventClose = iota
+		EventNonExist
+	)
+	const (
+		EventStrOpen = "open"
+		EventStrPause = "paused"
+		EventStrClose = "close"
+	)
+
+	fsm, err := NewFSM(
+		StateClosed,
+		EventMap{
+			EventOpen: EventStrOpen,
+			EventPause: EventStrPause,
+			EventClose: EventStrClose },
+		StateMap{
+			StateOpened: StateStrOpened,
+			StatePaused: StateStrPaused,
+			StateClosed: StateStrClosed },
+		Events{
+			{IDEvent: EventOpen, IDsSrc:[]StateID{StateClosed, StatePaused}, IDDst:StateOpened},
+			{IDEvent: EventPause, IDsSrc:[]StateID{StateOpened}, IDDst:StatePaused},
+			{IDEvent: EventClose, IDsSrc:[]StateID{StateOpened, StatePaused}, IDDst:StateClosed},
+		},
+		Callbacks{
+			{IDCallbackType: CallbackBeforeEvent, ID: EventOpen}: func(e *Event) { fmt.Println("Before event open.")},
+			{IDCallbackType: CallbackBeforeEvent, ID: EventPause}: func(e *Event) { fmt.Println("Before event pause.")},
+			{IDCallbackType: CallbackBeforeEvent, ID: EventClose}: func(e *Event) { fmt.Println("Before event close.")},
+			{IDCallbackType: CallbackLeaveState, ID: StateOpened}: func(e *Event) { fmt.Println("Leave state opened.")},
+			{IDCallbackType: CallbackLeaveState, ID: StatePaused}: func(e *Event) { fmt.Println("Leave state paused.")},
+			{IDCallbackType: CallbackLeaveState, ID: StateClosed}: func(e *Event) { fmt.Println("Leave state closed.")},
+			{IDCallbackType: CallbackEnterState, ID: StateOpened}: func(e *Event) { fmt.Println("Got into state opened.")},
+			{IDCallbackType: CallbackEnterState, ID: StatePaused}: func(e *Event) { fmt.Println("Got into state paused.")},
+			{IDCallbackType: CallbackEnterState, ID: StateClosed}: func(e *Event) { fmt.Println("Got into state closed.")},
+			{IDCallbackType: CallbackAfterEvent, ID: EventOpen}: func(e *Event) { fmt.Println("After event open.")},
+			{IDCallbackType: CallbackAfterEvent, ID: EventPause}: func(e *Event) { fmt.Println("After event pause.")},
+			{IDCallbackType: CallbackAfterEvent, ID: EventClose}: func(e *Event) { fmt.Println("After event close.")},
+		})
+	assert.Equal(t, DuplicateCallbackEnterStateError{state: StateStrOpened}, err, "Duplicate callback register for enter StateStrOpened NewFSM() expect DuplicateCallbackLeaveStateError.")
+	assert.Nil(t, fsm, "Duplicate enter StateOpened callback register NewFSM() expect nil fsm.")
+
+}
+
+func TestNewFSM_buildUpCallbackMap_DuplicateLeaveStateError(t *testing.T) {
+	const (
+		StateOpened = iota
+		StatePaused = iota
+		StateClosed = iota
+		StateNonExist
+	)
+	const (
+		StateStrOpened = "opened"
+		StateStrPaused = "paused"
+		StateStrClosed = "closed"
+	)
+	const (
+		EventOpen = iota
+		EventPause = iota
+		EventClose = iota
+		EventNonExist
+	)
+	const (
+		EventStrOpen = "open"
+		EventStrPause = "paused"
+		EventStrClose = "close"
+	)
+
+	fsm, err := NewFSM(
+		StateClosed,
+		EventMap{
+			EventOpen: EventStrOpen,
+			EventPause: EventStrPause,
+			EventClose: EventStrClose },
+		StateMap{
+			StateOpened: StateStrOpened,
+			StatePaused: StateStrPaused,
+			StateClosed: StateStrClosed },
+		Events{
+			{IDEvent: EventOpen, IDsSrc:[]StateID{StateClosed, StatePaused}, IDDst:StateOpened},
+			{IDEvent: EventPause, IDsSrc:[]StateID{StateOpened}, IDDst:StatePaused},
+			{IDEvent: EventClose, IDsSrc:[]StateID{StateOpened, StatePaused}, IDDst:StateClosed},
+		},
+		Callbacks{
+			{IDCallbackType: CallbackBeforeEvent, ID: EventOpen}: func(e *Event) { fmt.Println("Before event open.")},
+			{IDCallbackType: CallbackBeforeEvent, ID: EventPause}: func(e *Event) { fmt.Println("Before event pause.")},
+			{IDCallbackType: CallbackBeforeEvent, ID: EventClose}: func(e *Event) { fmt.Println("Before event close.")},
+			{IDCallbackType: CallbackLeaveState, ID: StateOpened}: func(e *Event) { fmt.Println("Leave state opened.")},
+			{IDCallbackType: CallbackLeaveState, ID: StateOpened}: func(e *Event) { fmt.Println("Leave state opened.")},
+			{IDCallbackType: CallbackLeaveState, ID: StatePaused}: func(e *Event) { fmt.Println("Leave state paused.")},
+			{IDCallbackType: CallbackLeaveState, ID: StateClosed}: func(e *Event) { fmt.Println("Leave state closed.")},
+			{IDCallbackType: CallbackEnterState, ID: StateOpened}: func(e *Event) { fmt.Println("Got into state opened.")},
+			{IDCallbackType: CallbackEnterState, ID: StatePaused}: func(e *Event) { fmt.Println("Got into state paused.")},
+			{IDCallbackType: CallbackEnterState, ID: StateClosed}: func(e *Event) { fmt.Println("Got into state closed.")},
+			{IDCallbackType: CallbackAfterEvent, ID: EventOpen}: func(e *Event) { fmt.Println("After event open.")},
+			{IDCallbackType: CallbackAfterEvent, ID: EventPause}: func(e *Event) { fmt.Println("After event pause.")},
+			{IDCallbackType: CallbackAfterEvent, ID: EventClose}: func(e *Event) { fmt.Println("After event close.")},
+		})
+	assert.Equal(t, DuplicateCallbackLeaveStateError{state: StateStrOpened}, err, "Duplicate callback register for leave StateStrOpened NewFSM() expect DuplicateCallbackLeaveStateError.")
+	assert.Nil(t, fsm, "Duplicate leave StateOpened callback register NewFSM() expect nil fsm.")
+
+}
+
+func TestNewFSM_buildUpCallbackMap_DuplicateAfterEventError(t *testing.T) {
+	const (
+		StateOpened = iota
+		StatePaused = iota
+		StateClosed = iota
+		StateNonExist
+	)
+	const (
+		StateStrOpened = "opened"
+		StateStrPaused = "paused"
+		StateStrClosed = "closed"
+	)
+	const (
+		EventOpen = iota
+		EventPause = iota
+		EventClose = iota
+		EventNonExist
+	)
+	const (
+		EventStrOpen = "open"
+		EventStrPause = "paused"
+		EventStrClose = "close"
+	)
+
+	fsm, err := NewFSM(
+		StateClosed,
+		EventMap{
+			EventOpen: EventStrOpen,
+			EventPause: EventStrPause,
+			EventClose: EventStrClose },
+		StateMap{
+			StateOpened: StateStrOpened,
+			StatePaused: StateStrPaused,
+			StateClosed: StateStrClosed },
+		Events{
+			{IDEvent: EventOpen, IDsSrc:[]StateID{StateClosed, StatePaused}, IDDst:StateOpened},
+			{IDEvent: EventPause, IDsSrc:[]StateID{StateOpened}, IDDst:StatePaused},
+			{IDEvent: EventClose, IDsSrc:[]StateID{StateOpened, StatePaused}, IDDst:StateClosed},
+		},
+		Callbacks{
+			{IDCallbackType: CallbackBeforeEvent, ID: EventOpen}: func(e *Event) { fmt.Println("Before event open.")},
+			{IDCallbackType: CallbackBeforeEvent, ID: EventPause}: func(e *Event) { fmt.Println("Before event pause.")},
+			{IDCallbackType: CallbackBeforeEvent, ID: EventClose}: func(e *Event) { fmt.Println("Before event close.")},
+			{IDCallbackType: CallbackLeaveState, ID: StateOpened}: func(e *Event) { fmt.Println("Leave state opened.")},
+			{IDCallbackType: CallbackLeaveState, ID: StatePaused}: func(e *Event) { fmt.Println("Leave state paused.")},
+			{IDCallbackType: CallbackLeaveState, ID: StateClosed}: func(e *Event) { fmt.Println("Leave state closed.")},
+			{IDCallbackType: CallbackEnterState, ID: StateOpened}: func(e *Event) { fmt.Println("Got into state opened.")},
+			{IDCallbackType: CallbackEnterState, ID: StatePaused}: func(e *Event) { fmt.Println("Got into state paused.")},
+			{IDCallbackType: CallbackEnterState, ID: StateClosed}: func(e *Event) { fmt.Println("Got into state closed.")},
+			{IDCallbackType: CallbackAfterEvent, ID: EventOpen}: func(e *Event) { fmt.Println("After event open.")},
+			{IDCallbackType: CallbackAfterEvent, ID: EventPause}: func(e *Event) { fmt.Println("After event pause.")},
+			{IDCallbackType: CallbackAfterEvent, ID: EventClose}: func(e *Event) { fmt.Println("After event close.")},
+			{IDCallbackType: CallbackAfterEvent, ID: EventClose}: func(e *Event) { fmt.Println("After event close.")},
+		})
+	assert.Equal(t, DuplicateCallbackAfterEventError{event: EventStrClose}, err, "Duplicate callback register for after EventClose NewFSM() expect DuplicateCallbackAfterEventError.")
+	assert.Nil(t, fsm, "Duplicate after event callback register NewFSM() expect nil fsm.")
+
+}
+
+func TestNewFSM_buildUpCallbackMap_DuplicateBeforeEventError(t *testing.T) {
+	const (
+		StateOpened = iota
+		StatePaused = iota
+		StateClosed = iota
+		StateNonExist
+	)
+	const (
+		StateStrOpened = "opened"
+		StateStrPaused = "paused"
+		StateStrClosed = "closed"
+	)
+	const (
+		EventOpen = iota
+		EventPause = iota
+		EventClose = iota
+		EventNonExist
+	)
+	const (
+		EventStrOpen = "open"
+		EventStrPause = "paused"
+		EventStrClose = "close"
+	)
+
+	fsm, err := NewFSM(
+		StateClosed,
+		EventMap{
+			EventOpen: EventStrOpen,
+			EventPause: EventStrPause,
+			EventClose: EventStrClose },
+		StateMap{
+			StateOpened: StateStrOpened,
+			StatePaused: StateStrPaused,
+			StateClosed: StateStrClosed },
+		Events{
+			{IDEvent: EventOpen, IDsSrc:[]StateID{StateClosed, StatePaused}, IDDst:StateOpened},
+			{IDEvent: EventPause, IDsSrc:[]StateID{StateOpened}, IDDst:StatePaused},
+			{IDEvent: EventClose, IDsSrc:[]StateID{StateOpened, StatePaused}, IDDst:StateClosed},
+		},
+		Callbacks{
+			{IDCallbackType: CallbackBeforeEvent, ID: EventOpen}: func(e *Event) { fmt.Println("Before event open.")},
+			{IDCallbackType: CallbackBeforeEvent, ID: EventOpen}: func(e *Event) { fmt.Println("Before event open.")},
+			{IDCallbackType: CallbackBeforeEvent, ID: EventPause}: func(e *Event) { fmt.Println("Before event pause.")},
+			{IDCallbackType: CallbackBeforeEvent, ID: EventClose}: func(e *Event) { fmt.Println("Before event close.")},
+			{IDCallbackType: CallbackLeaveState, ID: StateOpened}: func(e *Event) { fmt.Println("Leave state opened.")},
+			{IDCallbackType: CallbackLeaveState, ID: StatePaused}: func(e *Event) { fmt.Println("Leave state paused.")},
+			{IDCallbackType: CallbackLeaveState, ID: StateClosed}: func(e *Event) { fmt.Println("Leave state closed.")},
+			{IDCallbackType: CallbackEnterState, ID: StateOpened}: func(e *Event) { fmt.Println("Got into state opened.")},
+			{IDCallbackType: CallbackEnterState, ID: StatePaused}: func(e *Event) { fmt.Println("Got into state paused.")},
+			{IDCallbackType: CallbackEnterState, ID: StateClosed}: func(e *Event) { fmt.Println("Got into state closed.")},
+			{IDCallbackType: CallbackAfterEvent, ID: EventOpen}: func(e *Event) { fmt.Println("After event open.")},
+			{IDCallbackType: CallbackAfterEvent, ID: EventPause}: func(e *Event) { fmt.Println("After event pause.")},
+			{IDCallbackType: CallbackAfterEvent, ID: EventClose}: func(e *Event) { fmt.Println("After event close.")},
+		})
+	assert.Equal(t, DuplicateCallbackBeforeEventError{event: EventStrOpen}, err, "Duplicate callback register for before EventOpen NewFSM() expect DuplicateCallbackBeforeEventError.")
+	assert.Nil(t, fsm, "Duplicate before event callback register NewFSM() expect nil fsm.")
+
+}
+*/
+
+func TestNewFSM_validateEventTransitionsMap_nonExistSrcStateError(t *testing.T) {
+	const (
+		StateOpened = iota
+		StatePaused = iota
+		StateClosed = iota
+		StateNonExist
+	)
+	const (
+		StateStrOpened = "opened"
+		StateStrPaused = "paused"
+		StateStrClosed = "closed"
+	)
+	const (
+		EventOpen = iota
+		EventPause = iota
+		EventClose = iota
+		EventNonExist
+	)
+	const (
+		EventStrOpen = "open"
+		EventStrPause = "paused"
+		EventStrClose = "close"
+	)
+
+	fsm, err := NewFSM(
+		StateClosed,
+		EventMap{
+			EventOpen: EventStrOpen,
+			EventPause: EventStrPause,
+			EventClose: EventStrClose },
+		StateMap{
+			StateOpened: StateStrOpened,
+			StatePaused: StateStrPaused,
+			StateClosed: StateStrClosed },
+		Events{
+			{IDEvent: EventOpen, IDsSrc:[]StateID{StateClosed, StateNonExist}, IDDst:StateOpened},
+		},
+		Callbacks{
+		})
+	assert.Equal(t, StateOutOfRangeError{ID: StateNonExist}, err, "Non exist src state NewFSM() expect StateOutOfRangeError.")
+	assert.Nil(t, fsm, "Non exist src state NewFSM() expect nil fsm.")
+
+}
+
+func TestNewFSM_validateEventTransitionsMap_nonExistDstStateError(t *testing.T) {
+	const (
+		StateOpened = iota
+		StatePaused = iota
+		StateClosed = iota
+		StateNonExist
+	)
+	const (
+		StateStrOpened = "opened"
+		StateStrPaused = "paused"
+		StateStrClosed = "closed"
+	)
+	const (
+		EventOpen = iota
+		EventPause = iota
+		EventClose = iota
+		EventNonExist
+	)
+	const (
+		EventStrOpen = "open"
+		EventStrPause = "paused"
+		EventStrClose = "close"
+	)
+
+	fsm, err := NewFSM(
+		StateClosed,
+		EventMap{
+			EventOpen: EventStrOpen,
+			EventPause: EventStrPause,
+			EventClose: EventStrClose },
+		StateMap{
+			StateOpened: StateStrOpened,
+			StatePaused: StateStrPaused,
+			StateClosed: StateStrClosed },
+		Events{
+			{IDEvent: EventOpen, IDsSrc:[]StateID{StateClosed, StatePaused}, IDDst:StateNonExist},
+		},
+		Callbacks{
+		})
+	assert.Equal(t, StateOutOfRangeError{ID: StateNonExist}, err, "Non exist dst state NewFSM() expect StateOutOfRangeError.")
+	assert.Nil(t, fsm, "Non exist dst state NewFSM() expect nil fsm.")
+
+}
+
+func TestNewFSM_validateEventTransitionsMap_nonExistEventError(t *testing.T) {
+	const (
+		StateOpened = iota
+		StatePaused = iota
+		StateClosed = iota
+		StateNonExist
+	)
+	const (
+		StateStrOpened = "opened"
+		StateStrPaused = "paused"
+		StateStrClosed = "closed"
+	)
+	const (
+		EventOpen = iota
+		EventPause = iota
+		EventClose = iota
+		EventNonExist
+	)
+	const (
+		EventStrOpen = "open"
+		EventStrPause = "paused"
+		EventStrClose = "close"
+	)
+
+	fsm, err := NewFSM(
+		StateClosed,
+		EventMap{
+			EventOpen: EventStrOpen,
+			EventPause: EventStrPause,
+			EventClose: EventStrClose },
+		StateMap{
+			StateOpened: StateStrOpened,
+			StatePaused: StateStrPaused,
+			StateClosed: StateStrClosed },
+		Events{
+			{IDEvent: EventNonExist, IDsSrc:[]StateID{StateClosed, StatePaused}, IDDst:StateOpened},
+		},
+		Callbacks{
+		})
+	assert.Equal(t, EventOutOfRangeError{ID: EventNonExist}, err, "Non exist event NewFSM() expect EventOutOfRangeError.")
+	assert.Nil(t, fsm, "Non exist event NewFSM() expect nil fsm.")
+
+}
+
+func TestNewFSM_initStateError(t *testing.T) {
+	const (
+		StateOpened = iota
+		StatePaused = iota
+		StateClosed = iota
+		StateNonExist
+	)
+	const (
+		StateStrOpened = "opened"
+		StateStrPaused = "paused"
+		StateStrClosed = "closed"
+	)
+	const (
+		EventOpen = iota
+		EventPause = iota
+		EventClose = iota
+		EventNonExist
+	)
+	const (
+		EventStrOpen = "open"
+		EventStrPause = "paused"
+		EventStrClose = "close"
+	)
+
+	fsm, err := NewFSM(
+		StateNonExist,
+		EventMap{
+			EventOpen: EventStrOpen,
+			EventPause: EventStrPause,
+			EventClose: EventStrClose },
+		StateMap{
+			StateOpened: StateStrOpened,
+			StatePaused: StateStrPaused,
+			StateClosed: StateStrClosed },
+		Events{
+		},
+		Callbacks{
+		})
+	assert.Equal(t, StateOutOfRangeError{ID: StateNonExist}, err, "Non exist init state NewFSM() expect StateOutOfRangeError.")
+	assert.Nil(t, fsm, "Non exist init state NewFSM() expect nil fsm.")
 
 }
 

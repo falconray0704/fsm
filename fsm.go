@@ -155,7 +155,7 @@ func NewFSM(initState int, eventMap EventMap, stateMap StateMap,
 	)
 
 	if  _, ok = stateMap[initState]; !ok {
-		return nil, StateOutOfRangeError{}
+		return nil, StateOutOfRangeError{ID: initState}
 	}
 
 	if err = validateEventTransitionsMap(eventTransitions, eventMap, stateMap); err != nil {
@@ -184,15 +184,13 @@ func NewFSM(initState int, eventMap EventMap, stateMap StateMap,
 		return nil, err
 	}
 
-	if err = f.buildUpCallbackMap(callbackDescMap); err != nil {
-		return nil, err
-	}
+	f.buildUpCallbackMap(callbackDescMap)
+
 	return f, nil
 }
 
-func (f *FSM) buildUpCallbackMap(callbackDescMap map[CallBackDesc]Callback) error {
+func (f *FSM) buildUpCallbackMap(callbackDescMap map[CallBackDesc]Callback) {
 	var (
-		errOnce error
 		desc CallBackDesc
 		cb Callback
 	)
@@ -200,30 +198,18 @@ func (f *FSM) buildUpCallbackMap(callbackDescMap map[CallBackDesc]Callback) erro
 	for desc, cb = range callbackDescMap {
 		switch desc.IDCallbackType {
 		case CallbackBeforeEvent:
-			if errOnce = registerCallback(f.callbacksBeforeEvent, desc.ID, cb); errOnce != nil {
-				return DuplicateCallbackBeforeEventError{event: f.eventMap[desc.ID]}
-			}
-			break
+			f.callbacksBeforeEvent[desc.ID] = cb
 		case CallbackLeaveState:
-			if errOnce = registerCallback(f.callbacksLeaveState, desc.ID, cb); errOnce != nil {
-				return DuplicateCallbackLeaveStateError{state: f.stateMap[desc.ID]}
-			}
-			break
+			f.callbacksLeaveState[desc.ID] = cb
 		case CallbackEnterState:
-			if errOnce = registerCallback(f.callbacksEnterState, desc.ID, cb); errOnce != nil {
-				return DuplicateCallbackEnterStateError{state: f.stateMap[desc.ID]}
-			}
-			break
+			f.callbacksEnterState[desc.ID] = cb
 		case CallbackAfterEvent:
-			if errOnce = registerCallback(f.callbacksAfterEvent, desc.ID, cb); errOnce != nil {
-				return DuplicateCallbackAfterEventError{event: f.eventMap[desc.ID]}
-			}
-			break
+			f.callbacksAfterEvent[desc.ID] = cb
 		}
 	}
-	return nil
 }
 
+/*
 func registerCallback(callbackMap CallbackMap, id int, callback Callback) error {
 	var (
 		ok bool
@@ -237,6 +223,7 @@ func registerCallback(callbackMap CallbackMap, id int, callback Callback) error 
 	callbackMap[id] = callback
 	return nil
 }
+*/
 
 func (f *FSM) buildUpTransitions(eventTransitions []EventDesc) error {
 	var (
@@ -263,14 +250,14 @@ func validateEventTransitionsMap(eventTransitions []EventDesc, eventMap EventMap
 	)
 	for _, ed = range eventTransitions {
 		if _, ok = eventMap[ed.IDEvent]; !ok {
-			return EventOutOfRangeError{}
+			return EventOutOfRangeError{ID: ed.IDEvent}
 		}
 		if _, ok = stateMap[ed.IDDst]; !ok {
-			return StateOutOfRangeError{}
+			return StateOutOfRangeError{ID: ed.IDDst}
 		}
-		for srcState := range ed.IDsSrc {
+		for _, srcState := range ed.IDsSrc {
 			if _, ok = stateMap[srcState]; !ok {
-				return StateOutOfRangeError{}
+				return StateOutOfRangeError{ID: srcState}
 			}
 		}
 	}
