@@ -317,7 +317,7 @@ func (f *FSM) Is(stateID int) bool {
 // The call does not trigger any callbacks, if defined.
 func (f *FSM) SetState(stateID int) error {
 	if _, ok :=  f.stateMap[stateID]; !ok {
-		return StateOutOfRangeError{}
+		return StateOutOfRangeError{ID: stateID}
 	}
 
 	f.stateMu.Lock()
