@@ -98,6 +98,91 @@ func TestFSM_Transition(t *testing.T) {
 
 }
 
+func TestFSM_leaveStateCallbacks_CanceledError(t *testing.T) {
+	var (
+		stbs *stubbedCallbackStateCanceledError
+		stbErr error
+	)
+	const (
+		StateStartID = iota
+		StateOpened = iota
+		StatePaused = iota
+		StateClosed = iota
+		StateNonExist
+	)
+	const (
+		StateStrOpened = "opened"
+		StateStrPaused = "paused"
+		StateStrClosed = "closed"
+	)
+	const (
+		EventStartID = iota
+		EventOpen = iota
+		EventPause = iota
+		EventClose = iota
+		EventNonExist
+	)
+	const (
+		EventStrOpen = "open"
+		EventStrPause = "paused"
+		EventStrClose = "close"
+	)
+
+	fsm, err := NewFSM(
+		StateClosed,
+		EventMap{
+			EventStartID: EventStartStr,
+			EventOpen: EventStrOpen,
+			EventPause: EventStrPause,
+			EventClose: EventStrClose },
+		StateMap{
+			StateStartID: StateStartStr,
+			StateOpened: StateStrOpened,
+			StatePaused: StateStrPaused,
+			StateClosed: StateStrClosed },
+		Events{
+			{IDEvent: EventOpen, IDsSrc:[]StateID{StateClosed, StatePaused}, IDDst:StateOpened},
+			{IDEvent: EventPause, IDsSrc:[]StateID{StateOpened}, IDDst:StatePaused},
+			{IDEvent: EventClose, IDsSrc:[]StateID{StateOpened, StatePaused}, IDDst:StateClosed},
+			{IDEvent: EventOpen, IDsSrc:[]StateID{StateOpened}, IDDst:StateOpened},
+		},
+		Callbacks{
+			{IDCallbackType: CallbackBeforeEvent, ID: EventStartID}: func(e *Event) { fmt.Println("Before all event.")},
+			{IDCallbackType: CallbackBeforeEvent, ID: EventOpen}: func(e *Event) { fmt.Println("Before event open.")},
+			{IDCallbackType: CallbackBeforeEvent, ID: EventPause}: func(e *Event) { fmt.Println("Before event pause.")},
+			{IDCallbackType: CallbackBeforeEvent, ID: EventClose}: func(e *Event) { fmt.Println("Before event close.")},
+			{IDCallbackType: CallbackLeaveState, ID: StateStartID}: func(e *Event) { fmt.Println("Leave all state.")},
+			{IDCallbackType: CallbackLeaveState, ID: StateOpened}: func(e *Event) { fmt.Println("Leave state opened.")},
+			{IDCallbackType: CallbackLeaveState, ID: StatePaused}: func(e *Event) { fmt.Println("Leave state paused.")},
+			{IDCallbackType: CallbackLeaveState, ID: StateClosed}: func(e *Event) { fmt.Println("Leave state closed.")},
+			{IDCallbackType: CallbackEnterState, ID: StateStartID}: func(e *Event) { fmt.Println("Got into all state.")},
+			{IDCallbackType: CallbackEnterState, ID: StateOpened}: func(e *Event) { fmt.Println("Got into state opened.")},
+			{IDCallbackType: CallbackEnterState, ID: StatePaused}: func(e *Event) { fmt.Println("Got into state paused.")},
+			{IDCallbackType: CallbackEnterState, ID: StateClosed}: func(e *Event) { fmt.Println("Got into state closed.")},
+			{IDCallbackType: CallbackAfterEvent, ID: EventStartID}: func(e *Event) { fmt.Println("After all event.")},
+			{IDCallbackType: CallbackAfterEvent, ID: EventOpen}: func(e *Event) { fmt.Println("After event open.")},
+			{IDCallbackType: CallbackAfterEvent, ID: EventPause}: func(e *Event) { fmt.Println("After event pause.")},
+			{IDCallbackType: CallbackAfterEvent, ID: EventClose}: func(e *Event) { fmt.Println("After event close.")},
+		})
+	assert.NoError(t, err, "NewFSM() expect no error.")
+
+	// closed ---> opened, canceled
+	stbs, stbErr = withStubbedCallbackStateCanceledError(fsm, fsm.Event, EventOpen, CallbackLeaveState, EventClose)
+	assert.NoError(t, stbErr, "Expect no err on stub")
+	assert.True(t, stbs.isCalled, "Expect stubbed callback was called")
+	err = stbs.err
+	assert.Equal(t, CanceledError{Err: errors.New("stub callback canceled")}, err, "Cancel in before event callback expect CanceledError.")
+	assert.Equal(t, StateStrClosed, fsm.Current(), "Cancel transition expect still closed")
+
+	// closed ---> opened, canceled
+	stbs, stbErr = withStubbedCallbackStateCanceledError(fsm, fsm.Event, EventOpen, CallbackLeaveState, EventStartID)
+	assert.NoError(t, stbErr, "Expect no err on stub")
+	assert.True(t, stbs.isCalled, "Expect stubbed callback was called")
+	err = stbs.err
+	assert.Equal(t, CanceledError{Err: errors.New("stub callback canceled")}, err, "Cancel in before event callback expect CanceledError.")
+	assert.Equal(t, StateStrClosed, fsm.Current(), "Cancel transition expect still closed")
+}
+
 func TestFSM_beforeEventCallbacks_CanceledError(t *testing.T) {
 		var (
 		stbe *stubbedCallbackEventCanceledError
@@ -1146,6 +1231,66 @@ func ExampleFSM_Transition() {
 }
 
 // stub state callback
+type stubbedCallbackStateCanceledError struct {
+	isCalled bool
+	countCalled int
+	err error
+
+	callbackType CallbackType
+	callbackID CKey
+	preCB Callback
+	preCBM CallbackMap
+}
+
+func (cb *stubbedCallbackStateCanceledError) EventCall(event * Event)  {
+	cb.isCalled = true
+	cb.countCalled++
+	event.Cancel(errors.New("stub callback canceled"))
+}
+
+func withStubbedCallbackStateCanceledError(fsm *FSM, eventFunc func(eventID int, args ...interface{}) error,eventID EventID, callbackType CallbackType, callbackID CKey) (*stubbedCallbackStateCanceledError, error) {
+	var (
+		err error
+		stb = &stubbedCallbackStateCanceledError{}
+	)
+	if err = stb.stub(fsm, callbackType, callbackID); err != nil {
+		return nil, err
+	}
+	defer stb.unstub()
+
+	stb.err = eventFunc(eventID)
+
+	return stb, nil
+}
+
+func (cb *stubbedCallbackStateCanceledError) stub(fsm *FSM, callbackType CallbackType, callbackID CKey) error {
+	var (
+		ok bool
+	)
+	cb.callbackType = callbackType
+	cb.callbackID = callbackID
+
+	switch callbackType {
+	case CallbackLeaveState:
+		cb.preCBM = fsm.callbacksLeaveState
+	case CallbackEnterState:
+		cb.preCBM = fsm.callbacksEnterState
+	}
+
+	if cb.preCB, ok = cb.preCBM[cb.callbackID]; !ok {
+		return errors.New("stub callback fail")
+	}
+
+	cb.preCBM[cb.callbackID] = cb
+	return nil
+}
+
+func (cb *stubbedCallbackStateCanceledError) unstub() {
+	cb.preCBM[cb.callbackID] = cb.preCB
+}
+
+
+// stub state callback
 type stubbedCallbackState struct {
 	isCalled bool
 	countCalled int
@@ -1203,7 +1348,7 @@ func (cb *stubbedCallbackState) unstub() {
 	cb.preCBM[cb.callbackID] = cb.preCB
 }
 
-// stub event callback
+// stub event callback cancel
 type stubbedCallbackEventCanceledError struct {
 	isCalled bool
 	countCalled int
@@ -1218,8 +1363,7 @@ type stubbedCallbackEventCanceledError struct {
 func (cb *stubbedCallbackEventCanceledError) EventCall(event * Event)  {
 	cb.isCalled = true
 	cb.countCalled++
-	event.canceled = true
-	event.Err = errors.New("stub callback canceled")
+	event.Cancel(errors.New("stub callback canceled"))
 }
 
 func withStubbedCallbackEventCanceledError(fsm *FSM, eventFunc func(eventID int, args ...interface{}) error,eventID EventID, callbackType CallbackType, callbackID CKey) (*stubbedCallbackEventCanceledError, error) {
