@@ -15,12 +15,12 @@
 package fsm
 
 import (
+	"errors"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"log"
 	"reflect"
 	"testing"
-//	. "github.com/falconray0704/fsm"
 )
 
 func TestFSM_Transition(t *testing.T) {
@@ -99,6 +99,11 @@ func TestFSM_Transition(t *testing.T) {
 }
 
 func TestNewFSM(t *testing.T) {
+	var (
+		stbe *stubbedCallbackEvent
+		stbs *stubbedCallbackState
+		stbErr error
+	)
 	const (
 		StateStartID = iota
 		StateOpened = iota
@@ -210,7 +215,11 @@ func TestNewFSM(t *testing.T) {
 
 
 	// closed ---> opened, success
-	err = fsm.Event(EventOpen)
+	stbe, stbErr = withStubbedCallbackEvent(fsm, fsm.Event, EventOpen, CallbackBeforeEvent, EventOpen)
+	assert.NoError(t, stbErr, "Expect no err on stub")
+	assert.True(t, stbe.isCalled, "Expect stubbed callback was called")
+	err = stbe.err
+	// err = fsm.Event(EventOpen)
 	assert.NoError(t, err, "Open transition from closed expect success.")
 	assert.Equal(t, StateStrOpened, fsm.Current(), "Open transition expect opened")
 	// opened ---> opened, NoTransitionError
@@ -219,15 +228,28 @@ func TestNewFSM(t *testing.T) {
 	assert.Equal(t, StateStrOpened, fsm.Current(), "Open transition expect opened")
 
 	// opened ---> closed, success
-	err = fsm.Event(EventClose)
+	stbe, stbErr = withStubbedCallbackEvent(fsm, fsm.Event, EventClose, CallbackAfterEvent, EventClose)
+	assert.NoError(t, stbErr, "Expect no err on stub")
+	assert.True(t, stbe.isCalled, "Expect stubbed callback was called")
+	err = stbe.err
+	// err = fsm.Event(EventClose)
 	assert.NoError(t, err, "Close transition from opened expect success.")
 	assert.Equal(t, StateStrClosed, fsm.Current(), "Close transition expect closed")
 
-	// opened ---> paused, success
-	err = fsm.Event(EventOpen)
+	// closed ---> opened , success
+	stbs, stbErr = withStubbedCallbackState(fsm, fsm.Event, EventOpen, CallbackLeaveState, EventOpen)
+	assert.NoError(t, stbErr, "Expect no err on stub")
+	assert.True(t, stbe.isCalled, "Expect stubbed callback was called")
+	err = stbs.err
+	// err = fsm.Event(EventOpen)
 	assert.NoError(t, err, "Open transition from closed expect success.")
 	assert.Equal(t, StateStrOpened, fsm.Current(), "Open transition expect opened")
-	err = fsm.Event(EventPause)
+	// opened ---> paused, success
+	stbs, stbErr = withStubbedCallbackState(fsm, fsm.Event, EventPause, CallbackEnterState, EventPause)
+	assert.NoError(t, stbErr, "Expect no err on stub")
+	assert.True(t, stbe.isCalled, "Expect stubbed callback was called")
+	err = stbs.err
+	//err = fsm.Event(EventPause)
 	assert.NoError(t, err, "Pause transition from opened expect success.")
 	assert.Equal(t, StateStrPaused, fsm.Current(), "Pause transition expect paused")
 
@@ -242,19 +264,46 @@ func TestNewFSM(t *testing.T) {
 		"Valid transitions in state paused expect {open, close}")
 
 	// paused --->  opened success
-	err = fsm.Event(EventOpen)
+	stbe, stbErr = withStubbedCallbackEvent(fsm, fsm.Event, EventOpen, CallbackBeforeEvent, EventStartID)
+	assert.NoError(t, stbErr, "Expect no err on stub")
+	assert.True(t, stbe.isCalled, "Expect stubbed callback was called")
+	err = stbe.err
+	// err = fsm.Event(EventOpen)
 	assert.NoError(t, err, "Open transition from paused expect success.")
 	assert.Equal(t, StateStrOpened, fsm.Current(), "Open transition expect opened")
 
-	// paused --->  closed success
+	// opened ---> paused success
 	err = fsm.Event(EventPause)
 	assert.NoError(t, err, "Open transition from closed expect success.")
 	assert.Equal(t, StateStrPaused, fsm.Current(), "Pause transition expect paused")
-	err = fsm.Event(EventClose)
+
+	// paused --->  closed success
+	stbe, stbErr = withStubbedCallbackEvent(fsm, fsm.Event, EventClose, CallbackAfterEvent, EventStartID)
+	assert.NoError(t, stbErr, "Expect no err on stub")
+	assert.True(t, stbe.isCalled, "Expect stubbed callback was called")
+	err = stbe.err
+	// err = fsm.Event(EventClose)
 	assert.NoError(t, err, "Close transition from paused expect success.")
 	assert.Equal(t, StateStrClosed, fsm.Current(), "Close transition expect closed")
 
 
+	// closed ---> opened, success
+	stbs, stbErr = withStubbedCallbackState(fsm, fsm.Event, EventOpen, CallbackLeaveState, StateStartID)
+	assert.NoError(t, stbErr, "Expect no err on stub")
+	assert.True(t, stbe.isCalled, "Expect stubbed callback was called")
+	err = stbs.err
+	// err = fsm.Event(EventOpen)
+	assert.NoError(t, err, "Open transition from closed expect success.")
+	assert.Equal(t, StateStrOpened, fsm.Current(), "Open transition expect opened")
+
+	// opened ---> closed, success
+	stbs, stbErr = withStubbedCallbackState(fsm, fsm.Event, EventClose, CallbackEnterState, StateStartID)
+	assert.NoError(t, stbErr, "Expect no err on stub")
+	assert.True(t, stbe.isCalled, "Expect stubbed callback was called")
+	err = stbs.err
+	// err = fsm.Event(EventClose)
+	assert.NoError(t, err, "Close transition from opened expect success.")
+	assert.Equal(t, StateStrClosed, fsm.Current(), "Close transition expect closed")
 }
 
 func TestNewFSM_buildUpTransitions_DuplicateTransitionError(t *testing.T) {
@@ -300,11 +349,9 @@ func TestNewFSM_buildUpTransitions_DuplicateTransitionError(t *testing.T) {
 			{IDEvent: EventOpen, IDsSrc:[]StateID{StateClosed, StatePaused}, IDDst:StateOpened},
 		},
 		Callbacks{
-			{IDCallbackType: CallbackBeforeEvent, ID: EventOpen}: func(e *Event) { fmt.Println("Before event open.")},
 		})
 	assert.Equal(t,DuplicateTransitionError{event:EventStrOpen, state:StateStrClosed}, err, "Duplicate transition NewFSM() expect DuplicateTransitionError.")
 	assert.Nil(t, fsm, "Duplicate transition NewFSM() expect nil fsm.")
-
 }
 
 func TestNewFSM_validateCallbackMap_StateOutOfRangeError(t *testing.T) {
@@ -1010,5 +1057,121 @@ func ExampleFSM_Transition() {
 	if  err != nil || fsm.Current() != StateStrClosed {
 		log.Fatalln("Close transition from paused expect success.")
 	}
+}
+
+// stub state callback
+type stubbedCallbackState struct {
+	isCalled bool
+	countCalled int
+	err error
+
+	callbackType CallbackType
+	callbackID CKey
+	preCB Callback
+	preCBM CallbackMap
+}
+
+func (cb *stubbedCallbackState) EventCall(event * Event)  {
+	cb.isCalled = true
+	cb.countCalled++
+}
+
+func withStubbedCallbackState(fsm *FSM, eventFunc func(eventID int, args ...interface{}) error,eventID EventID, callbackType CallbackType, callbackID CKey) (*stubbedCallbackState, error) {
+	var (
+		err error
+		stb = &stubbedCallbackState{}
+	)
+	if err = stb.stub(fsm, callbackType, callbackID); err != nil {
+		return nil, err
+	}
+	defer stb.unstub()
+
+	stb.err = eventFunc(eventID)
+
+	return stb, nil
+}
+
+func (cb *stubbedCallbackState) stub(fsm *FSM, callbackType CallbackType, callbackID CKey) error {
+	var (
+		ok bool
+	)
+	cb.callbackType = callbackType
+	cb.callbackID = callbackID
+
+	switch callbackType {
+	case CallbackLeaveState:
+		cb.preCBM = fsm.callbacksLeaveState
+	case CallbackEnterState:
+		cb.preCBM = fsm.callbacksEnterState
+	}
+
+	if cb.preCB, ok = cb.preCBM[cb.callbackID]; !ok {
+		return errors.New("stub callback fail")
+	}
+
+	cb.preCBM[cb.callbackID] = cb
+	return nil
+}
+
+func (cb *stubbedCallbackState) unstub() {
+	cb.preCBM[cb.callbackID] = cb.preCB
+}
+
+// stub event callback
+type stubbedCallbackEvent struct {
+	isCalled bool
+	countCalled int
+	err error
+
+	callbackType CallbackType
+	callbackID CKey
+	preCB Callback
+	preCBM CallbackMap
+}
+
+func (cb *stubbedCallbackEvent) EventCall(event * Event)  {
+	cb.isCalled = true
+	cb.countCalled++
+}
+
+func withStubbedCallbackEvent(fsm *FSM, eventFunc func(eventID int, args ...interface{}) error,eventID EventID, callbackType CallbackType, callbackID CKey) (*stubbedCallbackEvent, error) {
+	var (
+		err error
+		stb = &stubbedCallbackEvent{}
+	)
+	if err = stb.stub(fsm, callbackType, callbackID); err != nil {
+		return nil, err
+	}
+	defer stb.unstub()
+
+	stb.err = eventFunc(eventID)
+
+	return stb, nil
+}
+
+func (cb *stubbedCallbackEvent) stub(fsm *FSM, callbackType CallbackType, callbackID CKey) error {
+	var (
+		ok bool
+	)
+	cb.callbackType = callbackType
+	cb.callbackID = callbackID
+
+	switch callbackType {
+	case CallbackBeforeEvent:
+		cb.preCBM = fsm.callbacksBeforeEvent
+	case CallbackAfterEvent:
+		cb.preCBM = fsm.callbacksAfterEvent
+	}
+
+	if cb.preCB, ok = cb.preCBM[cb.callbackID]; !ok {
+		return errors.New("stub callback fail")
+	}
+
+	cb.preCBM[cb.callbackID] = cb
+	return nil
+}
+
+func (cb *stubbedCallbackEvent) unstub() {
+	cb.preCBM[cb.callbackID] = cb.preCB
 }
 

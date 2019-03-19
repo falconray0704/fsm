@@ -102,13 +102,22 @@ type EventDesc struct {
 
 // Callback is a function type that callbacks should use. Event is the current
 // event info as the callback happens.
-type Callback func(*Event)
+// type Callback func(*Event)
+type Callback interface {
+	EventCall(event *Event)
+}
+
+type CallbackFunc func(*Event)
+
+func (f CallbackFunc) EventCall(event *Event) {
+	f(event)
+}
 
 // Events is a shorthand for defining the transition map in NewFSM.
 type Events []EventDesc
 
 // Callbacks is a shorthand for defining the callbacks in NewFSM.a
-type Callbacks map[CallBackDesc]Callback
+type Callbacks map[CallBackDesc]CallbackFunc
 
 // NewFSM constructs a FSM from events and callbacks.
 //
@@ -148,7 +157,7 @@ type Callbacks map[CallBackDesc]Callback
 // currently performed.
 func NewFSM(initState StateID, eventMap EventMap, stateMap StateMap,
 			eventTransitions []EventDesc,
-			callbackDescMap map[CallBackDesc]Callback) (*FSM, error) {
+			callbackDescMap map[CallBackDesc]CallbackFunc) (*FSM, error) {
 	var (
 		ok bool
 		err error
@@ -199,22 +208,22 @@ func NewFSM(initState StateID, eventMap EventMap, stateMap StateMap,
 	return f, nil
 }
 
-func (f *FSM) buildUpCallbackMap(callbackDescMap map[CallBackDesc]Callback) {
+func (f *FSM) buildUpCallbackMap(callbackDescMap map[CallBackDesc]CallbackFunc) {
 	var (
 		desc CallBackDesc
-		cb Callback
+		cbf CallbackFunc
 	)
 
-	for desc, cb = range callbackDescMap {
+	for desc, cbf = range callbackDescMap {
 		switch desc.IDCallbackType {
 		case CallbackBeforeEvent:
-			f.callbacksBeforeEvent[desc.ID] = cb
+			f.callbacksBeforeEvent[desc.ID] = CallbackFunc(cbf)
 		case CallbackLeaveState:
-			f.callbacksLeaveState[desc.ID] = cb
+			f.callbacksLeaveState[desc.ID] = CallbackFunc(cbf)
 		case CallbackEnterState:
-			f.callbacksEnterState[desc.ID] = cb
+			f.callbacksEnterState[desc.ID] = CallbackFunc(cbf)
 		case CallbackAfterEvent:
-			f.callbacksAfterEvent[desc.ID] = cb
+			f.callbacksAfterEvent[desc.ID] = CallbackFunc(cbf)
 		}
 	}
 }
@@ -281,7 +290,7 @@ func validateEventTransitionsMap(eventTransitions []EventDesc, eventMap EventMap
 	return nil
 }
 
-func validateCallbackMap(callbackDescMap map[CallBackDesc]Callback, eventMap EventMap, stateMap StateMap) error {
+func validateCallbackMap(callbackDescMap map[CallBackDesc]CallbackFunc, eventMap EventMap, stateMap StateMap) error {
 	var (
 		ok bool
 	)
@@ -468,14 +477,14 @@ func (f *FSM) doTransition() error {
 // general version.
 func (f *FSM) beforeEventCallbacks(e *Event) error {
 	if fn, ok := f.callbacksBeforeEvent[CKey(e.Event)]; ok && fn != nil {
-		fn(e)
+		fn.EventCall(e)
 		if e.canceled {
 			return CanceledError{e.Err}
 		}
 	}
 
 	if fn, ok := f.callbacksBeforeEvent[StateStartID]; ok && fn != nil {
-		fn(e)
+		fn.EventCall(e)
 		if e.canceled {
 			return CanceledError{e.Err}
 		}
@@ -487,7 +496,7 @@ func (f *FSM) beforeEventCallbacks(e *Event) error {
 // general version.
 func (f *FSM) leaveStateCallbacks(e *Event) error {
 	if fn, ok := f.callbacksLeaveState[CKey(f.current)]; ok && fn != nil {
-		fn(e)
+		fn.EventCall(e)
 		if e.canceled {
 			return CanceledError{e.Err}
 		} else if e.async {
@@ -496,7 +505,7 @@ func (f *FSM) leaveStateCallbacks(e *Event) error {
 	}
 
 	if fn, ok := f.callbacksLeaveState[StateStartID]; ok && fn != nil {
-		fn(e)
+		fn.EventCall(e)
 		if e.canceled {
 			return CanceledError{e.Err}
 		} else if e.async {
@@ -510,10 +519,10 @@ func (f *FSM) leaveStateCallbacks(e *Event) error {
 // general version.
 func (f *FSM) enterStateCallbacks(e *Event) {
 	if fn, ok := f.callbacksEnterState[CKey(f.current)]; ok && fn != nil {
-		fn(e)
+		fn.EventCall(e)
 	}
 	if fn, ok := f.callbacksEnterState[StateStartID]; ok && fn != nil {
-		fn(e)
+		fn.EventCall(e)
 	}
 }
 
@@ -521,10 +530,10 @@ func (f *FSM) enterStateCallbacks(e *Event) {
 // general version.
 func (f *FSM) afterEventCallbacks(e *Event) {
 	if fn, ok := f.callbacksAfterEvent[CKey(e.Event)]; ok && fn != nil {
-		fn(e)
+		fn.EventCall(e)
 	}
 	if fn, ok := f.callbacksAfterEvent[EventStartID]; ok && fn != nil {
-		fn(e)
+		fn.EventCall(e)
 	}
 }
 
