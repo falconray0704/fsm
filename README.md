@@ -4,8 +4,8 @@
 
 Reconstruct https://github.com/looplab/fsm
 
-# Why do this reconstruct?
-(1) Up to 44% reaction speed improve from event to callback function.
+# Why do this reconstruction?
+(1) Up to 44% reaction speed improvement from event to callback function.
 
 ```shell
     go test -bench=. -run=none -benchtime=1s -benchmem -cpuprofile cpu.prof -memprofile mem.prof
