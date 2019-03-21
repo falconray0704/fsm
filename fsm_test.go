@@ -1237,7 +1237,7 @@ type stubbedCallbackStateCanceledError struct {
 	err error
 
 	callbackType CallbackType
-	callbackID CKey
+	callbackID CBKey
 	preCB Callback
 	preCBM CallbackMap
 }
@@ -1248,7 +1248,7 @@ func (cb *stubbedCallbackStateCanceledError) EventCall(event * Event)  {
 	event.Cancel(errors.New("stub callback canceled"))
 }
 
-func withStubbedCallbackStateCanceledError(fsm *FSM, eventFunc func(eventID int, args ...interface{}) error,eventID EventID, callbackType CallbackType, callbackID CKey) (*stubbedCallbackStateCanceledError, error) {
+func withStubbedCallbackStateCanceledError(fsm *FSM, eventFunc func(eventID int, args ...interface{}) error,eventID EventID, callbackType CallbackType, callbackID CBKey) (*stubbedCallbackStateCanceledError, error) {
 	var (
 		err error
 		stb = &stubbedCallbackStateCanceledError{}
@@ -1263,7 +1263,7 @@ func withStubbedCallbackStateCanceledError(fsm *FSM, eventFunc func(eventID int,
 	return stb, nil
 }
 
-func (cb *stubbedCallbackStateCanceledError) stub(fsm *FSM, callbackType CallbackType, callbackID CKey) error {
+func (cb *stubbedCallbackStateCanceledError) stub(fsm *FSM, callbackType CallbackType, callbackID CBKey) error {
 	var (
 		ok bool
 	)
@@ -1297,7 +1297,7 @@ type stubbedCallbackState struct {
 	err error
 
 	callbackType CallbackType
-	callbackID CKey
+	callbackID CBKey
 	preCB Callback
 	preCBM CallbackMap
 }
@@ -1307,7 +1307,7 @@ func (cb *stubbedCallbackState) EventCall(event * Event)  {
 	cb.countCalled++
 }
 
-func withStubbedCallbackState(fsm *FSM, eventFunc func(eventID int, args ...interface{}) error,eventID EventID, callbackType CallbackType, callbackID CKey) (*stubbedCallbackState, error) {
+func withStubbedCallbackState(fsm *FSM, eventFunc func(eventID int, args ...interface{}) error,eventID EventID, callbackType CallbackType, callbackID CBKey) (*stubbedCallbackState, error) {
 	var (
 		err error
 		stb = &stubbedCallbackState{}
@@ -1322,7 +1322,7 @@ func withStubbedCallbackState(fsm *FSM, eventFunc func(eventID int, args ...inte
 	return stb, nil
 }
 
-func (cb *stubbedCallbackState) stub(fsm *FSM, callbackType CallbackType, callbackID CKey) error {
+func (cb *stubbedCallbackState) stub(fsm *FSM, callbackType CallbackType, callbackID CBKey) error {
 	var (
 		ok bool
 	)
@@ -1355,7 +1355,7 @@ type stubbedCallbackEventCanceledError struct {
 	err error
 
 	callbackType CallbackType
-	callbackID CKey
+	callbackID CBKey
 	preCB Callback
 	preCBM CallbackMap
 }
@@ -1366,7 +1366,7 @@ func (cb *stubbedCallbackEventCanceledError) EventCall(event * Event)  {
 	event.Cancel(errors.New("stub callback canceled"))
 }
 
-func withStubbedCallbackEventCanceledError(fsm *FSM, eventFunc func(eventID int, args ...interface{}) error,eventID EventID, callbackType CallbackType, callbackID CKey) (*stubbedCallbackEventCanceledError, error) {
+func withStubbedCallbackEventCanceledError(fsm *FSM, eventFunc func(eventID int, args ...interface{}) error,eventID EventID, callbackType CallbackType, callbackID CBKey) (*stubbedCallbackEventCanceledError, error) {
 	var (
 		err error
 		stb = &stubbedCallbackEventCanceledError{}
@@ -1381,7 +1381,7 @@ func withStubbedCallbackEventCanceledError(fsm *FSM, eventFunc func(eventID int,
 	return stb, nil
 }
 
-func (cb *stubbedCallbackEventCanceledError) stub(fsm *FSM, callbackType CallbackType, callbackID CKey) error {
+func (cb *stubbedCallbackEventCanceledError) stub(fsm *FSM, callbackType CallbackType, callbackID CBKey) error {
 	var (
 		ok bool
 	)
@@ -1414,7 +1414,7 @@ type stubbedCallbackEvent struct {
 	err error
 
 	callbackType CallbackType
-	callbackID CKey
+	callbackID CBKey
 	preCB Callback
 	preCBM CallbackMap
 }
@@ -1424,7 +1424,7 @@ func (cb *stubbedCallbackEvent) EventCall(event * Event)  {
 	cb.countCalled++
 }
 
-func withStubbedCallbackEvent(fsm *FSM, eventFunc func(eventID int, args ...interface{}) error,eventID EventID, callbackType CallbackType, callbackID CKey) (*stubbedCallbackEvent, error) {
+func withStubbedCallbackEvent(fsm *FSM, eventFunc func(eventID int, args ...interface{}) error,eventID EventID, callbackType CallbackType, callbackID CBKey) (*stubbedCallbackEvent, error) {
 	var (
 		err error
 		stb = &stubbedCallbackEvent{}
@@ -1439,7 +1439,7 @@ func withStubbedCallbackEvent(fsm *FSM, eventFunc func(eventID int, args ...inte
 	return stb, nil
 }
 
-func (cb *stubbedCallbackEvent) stub(fsm *FSM, callbackType CallbackType, callbackID CKey) error {
+func (cb *stubbedCallbackEvent) stub(fsm *FSM, callbackType CallbackType, callbackID CBKey) error {
 	var (
 		ok bool
 	)

@@ -24,9 +24,7 @@
 //
 package fsm
 
-import (
-	"sync"
-)
+import "sync"
 
 // transitioner is an interface for the FSM's transition function.
 type transitioner interface {
@@ -34,13 +32,88 @@ type transitioner interface {
 	transition() error
 }
 
+type CallbackType = int
+const (
+	CallbackTypeNone		CallbackType = iota		// 0
+	CallbackBeforeEvent		CallbackType = iota		// 1
+	CallbackLeaveState		CallbackType = iota		// 2
+	CallbackEnterState		CallbackType = iota		// 3
+	CallbackAfterEvent		CallbackType = iota		// 4
+	CallbackTypeSum			CallbackType = iota		// 5, total of callback types
+)
+
+// CBKey is a callback key used for indexing the callback corresponding
+// to event ID or state ID defined , must start from 1.
+// 0, reserve for all event id and state id callback.
+type CBKey = int
+const (
+	EventStartID CBKey = 0 // Event ID start Index, reserve for all event callback index
+	EventStartStr = "EventStart"
+	StateStartID CBKey = 0 // State ID start Index, reserve for all state callback index
+	StateStartStr = "StateStart"
+)
+
+// eKey is a struct key used for storing the transition map.
+type eKey struct {
+	// event is the key of the event
+	event EventID
+	// src is the source state from where the event can transition.
+	src StateID
+}
+
+// EventDesc represents an event when initializing the FSM.
+//
+// The event can have one or more source states that is valid for performing
+// the transition. If the FSM is in one of the source states it will end up in
+// the specified destination state, calling all defined callbacks as it goes.
+type EventDesc struct {
+	// Name is the event name used when calling for a transition.
+	IDEvent EventID
+
+	// Src is a slice of source states that the FSM must be in to perform a
+	// state transition.
+	IDsSrc []StateID
+
+	// Dst is the destination state that the FSM will be in if the transition success.
+	IDDst StateID
+}
+
+// Events is a shorthand for defining the transition map in NewFSM.
+type Events []EventDesc
+
+
+// Callback is a interface that internal use to call user's callback function.
+// Event is the current event info as the callback happens.
+type Callback interface {
+	EventCall(event *Event)
+}
+
+// CallbackFunc is the event/state callback function type that user implemented.
+type CallbackFunc func(*Event)
+
+func (f CallbackFunc) EventCall(event *Event) {
+	f(event)
+}
+
+// CallBackDesc represents an callback defining for happening of event/state when initializing the FSM.
+type CallBackDesc struct {
+	IDCallbackType	CallbackType	// type of callback, only supports:
+	// CallbackBeforeEvent, CallbackLeaveState, CallbackEnterState, CallbackAfterEvent
+
+	ID				int 			// ID of event or state
+}
+
+// Callbacks is a shorthand for defining the callbacks in NewFSM.a
+type Callbacks map[CallBackDesc]CallbackFunc
+
 type StateID = int
 type EventID = int
 
 type EventMap map[EventID]string
 type StateMap map[StateID]string
 
-type CallbackMap map[CKey]Callback
+type CallbackMap map[CBKey]Callback
+
 
 // FSM is the state machine that holds the current state.
 //
@@ -68,62 +141,25 @@ type FSM struct {
 	eventMu sync.Mutex
 
 
-	// map of events callbacks
+	// map of event ID to event name string
 	eventMap	EventMap
+	// map of state ID to state name string
 	stateMap	StateMap
+	// map of event ID to before event callback
 	callbacksBeforeEvent	CallbackMap
+	// map of state ID to leave state callback
 	callbacksLeaveState		CallbackMap
+	// map of state ID to enter state callback
 	callbacksEnterState		CallbackMap
+	// map of event ID to after event callback
 	callbacksAfterEvent		CallbackMap
 }
 
-type CallBackDesc struct {
-	IDCallbackType	CallbackType
-	ID			int // ID of event or state
-}
 
-// EventDesc represents an event when initializing the FSM.
+// NewFSM constructs a FSM from maps of events, states, and callbacks, ane set of transitions.
 //
-// The event can have one or more source states that is valid for performing
-// the transition. If the FSM is in one of the source states it will end up in
-// the specified destination state, calling all defined callbacks as it goes.
-type EventDesc struct {
-	// Name is the event name used when calling for a transition.
-	IDEvent EventID
-
-	// Src is a slice of source states that the FSM must be in to perform a
-	// state transition.
-	IDsSrc []StateID
-
-	// Dst is the destination state that the FSM will be in if the transition
-	// succeds.
-	IDDst StateID
-}
-
-// Callback is a function type that callbacks should use. Event is the current
-// event info as the callback happens.
-// type Callback func(*Event)
-type Callback interface {
-	EventCall(event *Event)
-}
-
-type CallbackFunc func(*Event)
-
-func (f CallbackFunc) EventCall(event *Event) {
-	f(event)
-}
-
-// Events is a shorthand for defining the transition map in NewFSM.
-type Events []EventDesc
-
-// Callbacks is a shorthand for defining the callbacks in NewFSM.a
-type Callbacks map[CallBackDesc]CallbackFunc
-
-// NewFSM constructs a FSM from events and callbacks.
-//
-// The events and transitions are specified as a slice of Event structs
-// specified as Events. Each Event is mapped to one or more internal
-// transitions from Event.Src to Event.Dst.
+// The eventMap and stateMap are specified as a map of event/state ID to event/state name string.
+// Each Event "EventDesc.IDEvent" is mapped to one or more internal transitions from "EventDesc.IDsSrc" to "EventDesc.IDDst".
 //
 // Callbacks are added as a map specified as Callbacks where the key is parsed
 // as the callback event as follows, and called in the same order:
@@ -147,14 +183,10 @@ type Callbacks map[CallBackDesc]CallbackFunc
 // There are also two short form versions for the most commonly used callbacks.
 // They are simply the name of the event or state:
 //
-// 1. <NEW_STATE> - called after entering <NEW_STATE>
+// 1. <StateStartID> - called after entering <StateStartID>
 //
-// 2. <EVENT> - called after event named <EVENT>
+// 2. <EventStartID> - called after event named <EventStartID>
 //
-// If both a shorthand version and a full version is specified it is undefined
-// which version of the callback will end up in the internal map. This is due
-// to the psuedo random nature of Go maps. No checking for multiple keys is
-// currently performed.
 func NewFSM(initState StateID, eventMap EventMap, stateMap StateMap,
 			eventTransitions []EventDesc,
 			callbackDescMap map[CallBackDesc]CallbackFunc) (*FSM, error) {
@@ -187,7 +219,6 @@ func NewFSM(initState StateID, eventMap EventMap, stateMap StateMap,
 
 
 	f := &FSM{
-		//transitionRunner: &transitionerStruct{},
 		eventMap:		eventMap,
 		stateMap:		stateMap,
 		current:		initState,
@@ -196,7 +227,6 @@ func NewFSM(initState StateID, eventMap EventMap, stateMap StateMap,
 		callbacksLeaveState:		make(CallbackMap),
 		callbacksEnterState:		make(CallbackMap),
 		callbacksAfterEvent:		make(CallbackMap),
-		//transitions:     make(map[eKey]string),
 	}
 
 	if err = f.buildUpTransitions(eventTransitions); err != nil {
@@ -446,9 +476,6 @@ func (f *FSM) Event(eventID int, args ...interface{}) error {
 	f.stateMu.RUnlock()
 	err = f.doTransition()
 	f.stateMu.RLock()
-	if err != nil {
-		return InternalError{}
-	}
 
 	return e.Err
 }
@@ -463,8 +490,6 @@ func (f *FSM) Transition() error {
 // doTransition wraps transitioner.transition.
 func (f *FSM) doTransition() error {
 
-	//return f.transitionRunner.transition(f)
-
 	if f.transition == nil {
 		return NotInTransitionError{}
 	}
@@ -476,7 +501,7 @@ func (f *FSM) doTransition() error {
 // beforeEventCallbacks calls the before_ callbacks, first the named then the
 // general version.
 func (f *FSM) beforeEventCallbacks(e *Event) error {
-	if fn, ok := f.callbacksBeforeEvent[CKey(e.Event)]; ok && fn != nil {
+	if fn, ok := f.callbacksBeforeEvent[CBKey(e.Event)]; ok && fn != nil {
 		fn.EventCall(e)
 		if e.canceled {
 			return CanceledError{e.Err}
@@ -495,7 +520,7 @@ func (f *FSM) beforeEventCallbacks(e *Event) error {
 // leaveStateCallbacks calls the leave_ callbacks, first the named then the
 // general version.
 func (f *FSM) leaveStateCallbacks(e *Event) error {
-	if fn, ok := f.callbacksLeaveState[CKey(f.current)]; ok && fn != nil {
+	if fn, ok := f.callbacksLeaveState[CBKey(f.current)]; ok && fn != nil {
 		fn.EventCall(e)
 		if e.canceled {
 			return CanceledError{e.Err}
@@ -518,7 +543,7 @@ func (f *FSM) leaveStateCallbacks(e *Event) error {
 // enterStateCallbacks calls the enter_ callbacks, first the named then the
 // general version.
 func (f *FSM) enterStateCallbacks(e *Event) {
-	if fn, ok := f.callbacksEnterState[CKey(f.current)]; ok && fn != nil {
+	if fn, ok := f.callbacksEnterState[CBKey(f.current)]; ok && fn != nil {
 		fn.EventCall(e)
 	}
 	if fn, ok := f.callbacksEnterState[StateStartID]; ok && fn != nil {
@@ -529,7 +554,7 @@ func (f *FSM) enterStateCallbacks(e *Event) {
 // afterEventCallbacks calls the after_ callbacks, first the named then the
 // general version.
 func (f *FSM) afterEventCallbacks(e *Event) {
-	if fn, ok := f.callbacksAfterEvent[CKey(e.Event)]; ok && fn != nil {
+	if fn, ok := f.callbacksAfterEvent[CBKey(e.Event)]; ok && fn != nil {
 		fn.EventCall(e)
 	}
 	if fn, ok := f.callbacksAfterEvent[EventStartID]; ok && fn != nil {
@@ -537,34 +562,4 @@ func (f *FSM) afterEventCallbacks(e *Event) {
 	}
 }
 
-const (
-	CallbackNone			CallbackType = iota		// 0
-	CallbackBeforeEvent		CallbackType = iota		// 1
-	CallbackLeaveState		CallbackType = iota		// 2
-	CallbackEnterState		CallbackType = iota		// 3
-	CallbackAfterEvent		CallbackType = iota		// 4
-	CallbackTypeSum			CallbackType = iota		// 5, total of callback types
-)
-
-type CallbackType = int
-
-// cKey is a callback key used for indexing the callback corresponding
-// to event or state, must start from 1, 0 use for all event and state callback
-type CKey = int
-const (
-	//CKeyAll cKey = 0 // Index 0 reserve for all event or status callback
-	EventStartID CKey = 0 // Event ID start Index, reserve for all event callback index
-	EventStartStr = "EventStart"
-	StateStartID CKey = 0 // State ID start Index, reserve for all state callback index
-	StateStartStr = "StateStart"
-)
-
-// eKey is a struct key used for storing the transition map.
-type eKey struct {
-	// event is the key of the event
-	event EventID
-
-	// src is the source state from where the event can transition.
-	src StateID
-}
 
