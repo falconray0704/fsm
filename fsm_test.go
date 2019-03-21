@@ -23,7 +23,89 @@ import (
 	"testing"
 )
 
-func TestFSM_Transition(t *testing.T) {
+func TestFSM_AllEventAsyncTransition(t *testing.T) {
+	const (
+		StateStartID = iota
+		StateOpened = iota
+		StatePaused = iota
+		StateClosed = iota
+		StateNonExist
+	)
+	const (
+		StateStrOpened = "opened"
+		StateStrPaused = "paused"
+		StateStrClosed = "closed"
+	)
+	const (
+		EventStartID = iota
+		EventOpen = iota
+		EventPause = iota
+		EventClose = iota
+		EventNonExist
+	)
+	const (
+		EventStrOpen = "open"
+		EventStrPause = "paused"
+		EventStrClose = "close"
+	)
+
+	fsm, err := NewFSM(
+		StateClosed,
+		EventMap{
+			EventStartID: EventStartStr,
+			EventOpen: EventStrOpen,
+			EventPause: EventStrPause,
+			EventClose: EventStrClose },
+		StateMap{
+			StateStartID: StateStartStr,
+			StateOpened: StateStrOpened,
+			StatePaused: StateStrPaused,
+			StateClosed: StateStrClosed },
+		Events{
+			{IDEvent: EventOpen, IDsSrc:[]StateID{StateClosed, StatePaused}, IDDst:StateOpened},
+			{IDEvent: EventPause, IDsSrc:[]StateID{StateOpened}, IDDst:StatePaused},
+			{IDEvent: EventClose, IDsSrc:[]StateID{StateOpened, StatePaused}, IDDst:StateClosed},
+			{IDEvent: EventOpen, IDsSrc:[]StateID{StateOpened}, IDDst:StateOpened},
+		},
+		Callbacks{
+			{IDCallbackType: CallbackBeforeEvent, ID: EventOpen}: func(e *Event) { fmt.Println("Before event open.")},
+			{IDCallbackType: CallbackBeforeEvent, ID: EventPause}: func(e *Event) { fmt.Println("Before event pause.")},
+			{IDCallbackType: CallbackBeforeEvent, ID: EventClose}: func(e *Event) { fmt.Println("Before event close.")},
+			{IDCallbackType: CallbackLeaveState, ID: StateOpened}: func(e *Event) { fmt.Println("Leave state opened.")},
+			{IDCallbackType: CallbackLeaveState, ID: StatePaused}: func(e *Event) { fmt.Println("Leave state paused.")},
+			{IDCallbackType: CallbackLeaveState, ID: StateClosed}: func(e *Event) { fmt.Println("Leave state closed.")},
+			{IDCallbackType: CallbackLeaveState, ID: StateStartID}: func(e *Event) { fmt.Println("Leave state closed."); e.Async()},
+			{IDCallbackType: CallbackEnterState, ID: StateOpened}: func(e *Event) { fmt.Println("Got into state opened.")},
+			{IDCallbackType: CallbackEnterState, ID: StatePaused}: func(e *Event) { fmt.Println("Got into state paused.")},
+			{IDCallbackType: CallbackEnterState, ID: StateClosed}: func(e *Event) { fmt.Println("Got into state closed.")},
+			{IDCallbackType: CallbackAfterEvent, ID: EventOpen}: func(e *Event) { fmt.Println("After event open.")},
+			{IDCallbackType: CallbackAfterEvent, ID: EventPause}: func(e *Event) { fmt.Println("After event pause.")},
+			{IDCallbackType: CallbackAfterEvent, ID: EventClose}: func(e *Event) { fmt.Println("After event close.")},
+		})
+	assert.NoError(t, err, "NewFSM() expect no error.")
+
+	// Async transition fail before e.Async() was called in user's callback
+	err = fsm.Transition()
+	assert.Equal(t, NotInTransitionError{}, err, "No async transition expect NotInTransitionError")
+
+	// start async transition testing
+	err = fsm.Event(EventOpen)
+	assert.Equal(t, AsyncError{}, err, "Async() transition expect AsyncError")
+	assert.Equal(t, "async started", err.Error(), "Async Transition expect nil error inside AsyncError")
+	assert.Equal(t, StateStrClosed, fsm.Current(), "Async() transition expect keep same state before Transition()")
+
+	// InTransitionError during in Async Transition
+	err = fsm.Event(EventOpen)
+	assert.Equal(t, InTransitionError{Event: EventStrOpen}, err, "During Async Transition expect InTransitionError if another Event happen")
+
+	// Async Transition()
+	err = fsm.Transition()
+	assert.NoError(t, err, "Transition() expect no error ")
+	assert.Equal(t, StateStrOpened, fsm.Current(), "Async() Transition() expect StateStrOpened")
+
+}
+
+func TestFSM_SpecificEventAsyncTransition(t *testing.T) {
 	const (
 		StateStartID = iota
 		StateOpened = iota
@@ -375,6 +457,7 @@ func TestNewFSM(t *testing.T) {
 	assert.NoError(t, err, "Set valid state StateClosed expect no error")
 	err = fsm.SetState(StateStartID)
 	assert.Equal(t,StateStartReserveError{}, err, "Set reserve state StateStartID expect StateStartReserveError")
+
 
 	// Event() ---> EventOutOfRangeError
 	err = fsm.Event(EventNonExist)
