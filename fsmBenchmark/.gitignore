@@ -1,0 +1,41 @@
+# Binaries for programs and plugins
+outBin
+tags
+*.exe
+*.dll
+*.so
+*.dylib
+*.o
+*.pb.h
+*.pb.go
+
+# Test binary, build with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
+.glide/
+
+# .idea
+.idea
+
+# vendor
+vendor
+
+# tmp
+tmp
+testDataTmp
+
+#logs
+./logsData/*.logs
+
+cover.out
+cover.html
+cpu.prof
+mem.prof
+profile*.pdf
+
+
+

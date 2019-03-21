@@ -1,0 +1,13 @@
+
+
+sysLogger:
+  isDevMode: true
+  logLevel: "debug"
+  enableConsole: true
+  enableConsoleFile: true
+  enableJsonFile: false
+  logsLocation: "./logDatas/"     # must end with "/"
+  logFilePrefix: "dev"
+  consoleOutput: "stderr"         # stderr or stdout
+
+
