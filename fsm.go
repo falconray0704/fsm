@@ -29,7 +29,7 @@ import "sync"
 type FSM interface {
 	Event(eventID int, args ...interface{}) error
 	Transition() error
-	Current() string
+	Current() (int, string)
 	Is(stateID int) bool
 	SetState(stateID int) error
 	Can(eventID int) bool
@@ -358,10 +358,10 @@ func validateCallbackMap(callbackDescMap map[CallBackDesc]CallbackFunc, eventMap
 }
 
 // Current returns the current state of the FSM.
-func (f *fsmGo) Current() string {
+func (f *fsmGo) Current() (int, string) {
 	f.stateMu.RLock()
 	defer f.stateMu.RUnlock()
-	return f.stateMap[f.current]
+	return f.current, f.stateMap[f.current]
 }
 
 // Is returns true if state is the current state.

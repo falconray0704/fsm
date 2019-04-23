@@ -92,7 +92,9 @@ func TestFSM_AllEventAsyncTransition(t *testing.T) {
 	err = fsm.Event(EventOpen)
 	assert.Equal(t, AsyncError{}, err, "Async() transition expect AsyncError")
 	assert.Equal(t, "async started", err.Error(), "Async Transition expect nil error inside AsyncError")
-	assert.Equal(t, StateStrClosed, fsm.Current(), "Async() transition expect keep same state before Transition()")
+	id, idStr := fsm.Current()
+	assert.Equal(t, StateClosed, id, "Async() transition expect keep same state id before Transition()")
+	assert.Equal(t, StateStrClosed, idStr, "Async() transition expect keep same idStr state before Transition()")
 
 	// InTransitionError during in Async Transition
 	err = fsm.Event(EventOpen)
@@ -101,7 +103,9 @@ func TestFSM_AllEventAsyncTransition(t *testing.T) {
 	// Async Transition()
 	err = fsm.Transition()
 	assert.NoError(t, err, "Transition() expect no error ")
-	assert.Equal(t, StateStrOpened, fsm.Current(), "Async() Transition() expect StateStrOpened")
+	id, idStr = fsm.Current()
+	assert.Equal(t, StateOpened, id, "Async() Transition() expect StateOpened")
+	assert.Equal(t, StateStrOpened, idStr, "Async() Transition() expect StateStrOpened")
 
 }
 
@@ -167,7 +171,9 @@ func TestFSM_SpecificEventAsyncTransition(t *testing.T) {
 	err = fsm.Event(EventOpen)
 	assert.Equal(t, AsyncError{}, err, "Async() transition expect AsyncError")
 	assert.Equal(t, "async started", err.Error(), "Async Transition expect nil error inside AsyncError")
-	assert.Equal(t, StateStrClosed, fsm.Current(), "Async() transition expect keep same state before Transition()")
+	id, idStr := fsm.Current()
+	assert.Equal(t, StateClosed, id, "Async() transition expect keep same state id before Transition()")
+	assert.Equal(t, StateStrClosed, idStr, "Async() transition expect keep same state idStr before Transition()")
 
 	// InTransitionError during in Async Transition
 	err = fsm.Event(EventOpen)
@@ -176,7 +182,9 @@ func TestFSM_SpecificEventAsyncTransition(t *testing.T) {
 	// Async Transition()
 	err = fsm.Transition()
 	assert.NoError(t, err, "Transition() expect no error ")
-	assert.Equal(t, StateStrOpened, fsm.Current(), "Async() Transition() expect StateStrOpened")
+	id, idStr = fsm.Current()
+	assert.Equal(t, StateOpened, id, "Async() Transition() expect StateOpened")
+	assert.Equal(t, StateStrOpened, idStr, "Async() Transition() expect StateStrOpened")
 
 }
 
@@ -254,7 +262,9 @@ func TestFSM_leaveStateCallbacks_CanceledError(t *testing.T) {
 	assert.True(t, stbs.isCalled, "Expect stubbed callback was called")
 	err = stbs.err
 	assert.Equal(t, CanceledError{Err: errors.New("stub callback canceled")}, err, "Cancel in before event callback expect CanceledError.")
-	assert.Equal(t, StateStrClosed, fsm.Current(), "Cancel transition expect still closed")
+	id, idStr := fsm.Current()
+	assert.Equal(t, StateClosed, id, "Cancel transition expect still closed")
+	assert.Equal(t, StateStrClosed, idStr, "Cancel transition expect still closed")
 
 	// closed ---> opened, canceled
 	stbs, stbErr = withStubbedCallbackStateCanceledError(fsm, fsm.Event, EventOpen, CallbackLeaveState, EventStartID)
@@ -262,7 +272,9 @@ func TestFSM_leaveStateCallbacks_CanceledError(t *testing.T) {
 	assert.True(t, stbs.isCalled, "Expect stubbed callback was called")
 	err = stbs.err
 	assert.Equal(t, CanceledError{Err: errors.New("stub callback canceled")}, err, "Cancel in before event callback expect CanceledError.")
-	assert.Equal(t, StateStrClosed, fsm.Current(), "Cancel transition expect still closed")
+	id, idStr = fsm.Current()
+	assert.Equal(t, StateClosed, id, "Cancel transition expect still closed")
+	assert.Equal(t, StateStrClosed, idStr, "Cancel transition expect still closed")
 }
 
 func TestFSM_beforeEventCallbacks_CanceledError(t *testing.T) {
@@ -340,7 +352,9 @@ func TestFSM_beforeEventCallbacks_CanceledError(t *testing.T) {
 	assert.True(t, stbe.isCalled, "Expect stubbed callback was called")
 	err = stbe.err
 	assert.Equal(t, CanceledError{Err: errors.New("stub callback canceled")}, err, "Cancel in before event callback expect CanceledError.")
-	assert.Equal(t, StateStrClosed, fsm.Current(), "Cancel transition expect still closed")
+	id, idStr := fsm.Current()
+	assert.Equal(t, StateClosed, id, "Cancel transition expect still closed")
+	assert.Equal(t, StateStrClosed, idStr, "Cancel transition expect still closed")
 
 	// closed ---> opened, canceled
 	stbe, stbErr = withStubbedCallbackEventCanceledError(fsm, fsm.Event, EventOpen, CallbackBeforeEvent, EventStartID)
@@ -348,7 +362,9 @@ func TestFSM_beforeEventCallbacks_CanceledError(t *testing.T) {
 	assert.True(t, stbe.isCalled, "Expect stubbed callback was called")
 	err = stbe.err
 	assert.Equal(t, CanceledError{Err: errors.New("stub callback canceled")}, err, "Cancel in before event callback expect CanceledError.")
-	assert.Equal(t, StateStrClosed, fsm.Current(), "Cancel transition expect still closed")
+	id, idStr = fsm.Current()
+	assert.Equal(t, StateClosed, id, "Cancel transition expect still closed")
+	assert.Equal(t, StateStrClosed, idStr, "Cancel transition expect still closed")
 }
 
 func Test_newGoFSM(t *testing.T) {
@@ -441,7 +457,9 @@ func Test_newGoFSM(t *testing.T) {
 	assert.NoError(t, err, "newGoFSM() expect no error.")
 
 	// Current() Is() Can() Cannot()
-	assert.Equal(t, StateStrClosed, fsm.Current(), "Init state expect closed")
+	id, idStr := fsm.Current()
+	assert.Equal(t, StateClosed, id, "Init state expect closed")
+	assert.Equal(t, StateStrClosed, idStr, "Init state expect closed")
 	assert.Equal(t, true, fsm.Is(StateClosed), "Init state expect StateClosed")
 	assert.Equal(t, true, fsm.Can(EventOpen), "Open event transition Can() from StateClosed expect true")
 	assert.Equal(t, false, fsm.Cannot(EventOpen), "Open event transition Cannot() from StateClosed expect false")
@@ -475,11 +493,15 @@ func Test_newGoFSM(t *testing.T) {
 	err = stbe.err
 	// err = fsm.Event(EventOpen)
 	assert.NoError(t, err, "Open transition from closed expect success.")
-	assert.Equal(t, StateStrOpened, fsm.Current(), "Open transition expect opened")
+	id, idStr = fsm.Current()
+	assert.Equal(t, StateOpened, id, "Open transition expect opened")
+	assert.Equal(t, StateStrOpened, idStr, "Open transition expect opened")
 	// opened ---> opened, NoTransitionError
 	err = fsm.Event(EventOpen)
 	assert.Equal(t, NoTransitionError{}, err, "Open transition from opened expect NoTransitionError.")
-	assert.Equal(t, StateStrOpened, fsm.Current(), "Open transition expect opened")
+	id, idStr = fsm.Current()
+	assert.Equal(t, StateOpened, id, "Open transition expect opened")
+	assert.Equal(t, StateStrOpened, idStr, "Open transition expect opened")
 
 	// opened ---> closed, success
 	stbe, stbErr = withStubbedCallbackEvent(fsm, fsm.Event, EventClose, CallbackAfterEvent, EventClose)
@@ -488,7 +510,9 @@ func Test_newGoFSM(t *testing.T) {
 	err = stbe.err
 	// err = fsm.Event(EventClose)
 	assert.NoError(t, err, "Close transition from opened expect success.")
-	assert.Equal(t, StateStrClosed, fsm.Current(), "Close transition expect closed")
+	id, idStr = fsm.Current()
+	assert.Equal(t, StateClosed, id, "Close transition expect closed")
+	assert.Equal(t, StateStrClosed, idStr, "Close transition expect closed")
 
 	// closed ---> opened , success
 	stbs, stbErr = withStubbedCallbackState(fsm, fsm.Event, EventOpen, CallbackLeaveState, EventOpen)
@@ -497,7 +521,9 @@ func Test_newGoFSM(t *testing.T) {
 	err = stbs.err
 	// err = fsm.Event(EventOpen)
 	assert.NoError(t, err, "Open transition from closed expect success.")
-	assert.Equal(t, StateStrOpened, fsm.Current(), "Open transition expect opened")
+	id, idStr = fsm.Current()
+	assert.Equal(t, StateOpened, id, "Open transition expect opened")
+	assert.Equal(t, StateStrOpened, idStr, "Open transition expect opened")
 	// opened ---> paused, success
 	stbs, stbErr = withStubbedCallbackState(fsm, fsm.Event, EventPause, CallbackEnterState, EventPause)
 	assert.NoError(t, stbErr, "Expect no err on stub")
@@ -505,7 +531,9 @@ func Test_newGoFSM(t *testing.T) {
 	err = stbs.err
 	//err = fsm.Event(EventPause)
 	assert.NoError(t, err, "Pause transition from opened expect success.")
-	assert.Equal(t, StateStrPaused, fsm.Current(), "Pause transition expect paused")
+	id, idStr = fsm.Current()
+	assert.Equal(t, StatePaused, id, "Pause transition expect paused")
+	assert.Equal(t, StateStrPaused, idStr, "Pause transition expect paused")
 
 	// AvailableTransitions()
 	trans := fsm.AvailableTransitions()
@@ -524,12 +552,16 @@ func Test_newGoFSM(t *testing.T) {
 	err = stbe.err
 	// err = fsm.Event(EventOpen)
 	assert.NoError(t, err, "Open transition from paused expect success.")
-	assert.Equal(t, StateStrOpened, fsm.Current(), "Open transition expect opened")
+	id, idStr = fsm.Current()
+	assert.Equal(t, StateOpened, id, "Open transition expect opened")
+	assert.Equal(t, StateStrOpened, idStr, "Open transition expect opened")
 
 	// opened ---> paused success
 	err = fsm.Event(EventPause)
 	assert.NoError(t, err, "Open transition from closed expect success.")
-	assert.Equal(t, StateStrPaused, fsm.Current(), "Pause transition expect paused")
+	id, idStr = fsm.Current()
+	assert.Equal(t, StatePaused, id, "Pause transition expect paused")
+	assert.Equal(t, StateStrPaused, idStr, "Pause transition expect paused")
 
 	// paused --->  closed success
 	stbe, stbErr = withStubbedCallbackEvent(fsm, fsm.Event, EventClose, CallbackAfterEvent, EventStartID)
@@ -538,7 +570,9 @@ func Test_newGoFSM(t *testing.T) {
 	err = stbe.err
 	// err = fsm.Event(EventClose)
 	assert.NoError(t, err, "Close transition from paused expect success.")
-	assert.Equal(t, StateStrClosed, fsm.Current(), "Close transition expect closed")
+	id, idStr = fsm.Current()
+	assert.Equal(t, StateClosed, id, "Close transition expect closed")
+	assert.Equal(t, StateStrClosed, idStr, "Close transition expect closed")
 
 
 	// closed ---> opened, success
@@ -548,7 +582,9 @@ func Test_newGoFSM(t *testing.T) {
 	err = stbs.err
 	// err = fsm.Event(EventOpen)
 	assert.NoError(t, err, "Open transition from closed expect success.")
-	assert.Equal(t, StateStrOpened, fsm.Current(), "Open transition expect opened")
+	id, idStr = fsm.Current()
+	assert.Equal(t, StateOpened, id, "Open transition expect opened")
+	assert.Equal(t, StateStrOpened, idStr, "Open transition expect opened")
 
 	// opened ---> closed, success
 	stbs, stbErr = withStubbedCallbackState(fsm, fsm.Event, EventClose, CallbackEnterState, StateStartID)
@@ -557,7 +593,9 @@ func Test_newGoFSM(t *testing.T) {
 	err = stbs.err
 	// err = fsm.Event(EventClose)
 	assert.NoError(t, err, "Close transition from opened expect success.")
-	assert.Equal(t, StateStrClosed, fsm.Current(), "Close transition expect closed")
+	id, idStr = fsm.Current()
+	assert.Equal(t, StateClosed, id, "Close transition expect closed")
+	assert.Equal(t, StateStrClosed, idStr, "Close transition expect closed")
 }
 
 func Test_newGoFSM_buildUpTransitions_DuplicateTransitionError(t *testing.T) {
@@ -1177,6 +1215,110 @@ func Test_newGoFSM_validateEventMap_EventStartReserveMissingError(t *testing.T) 
 	assert.Nil(t, fsm, "Reserve event without  reserve name newGoFSM() expect nil fsm.")
 }
 
+func Test_goFSM_syncTransitionInternalError(t *testing.T) {
+	const (
+		StateStartID = iota
+		StateOpened = iota
+		StatePaused = iota
+		StateClosed = iota
+		StateNonExist
+	)
+	const (
+		StateStrOpened = "opened"
+		StateStrPaused = "paused"
+		StateStrClosed = "closed"
+	)
+	const (
+		EventStartID = iota
+		EventOpen = iota
+		EventPause = iota
+		EventClose = iota
+		EventNonExist
+	)
+	const (
+		EventStrOpen = "open"
+		EventStrPause = "paused"
+		EventStrClose = "close"
+	)
+
+	fsm, err := newGoFSM(
+		StateClosed,
+		EventMap{
+			EventStartID: EventStartStr,
+			EventOpen: EventStrOpen,
+			EventPause: EventStrPause,
+			EventClose: EventStrClose },
+		StateMap{
+			StateStartID: StateStartStr,
+			StateOpened: StateStrOpened,
+			StatePaused: StateStrPaused,
+			StateClosed: StateStrClosed },
+		Events{
+			{IDEvent: EventOpen, IDsSrc:[]StateID{StateClosed, StatePaused}, IDDst:StateOpened},
+		},
+		Callbacks{
+		})
+	fsm.transitionerObj = new(fakeTransitionerObj)
+	assert.Nil(t, err, "newGoFSM() expect success.")
+
+	err = fsm.Event(EventOpen)
+	assert.Equal(t, InternalError{}, err, "Expect InternalError with fakeTransitionerObj")
+
+}
+
+func Test_NewFSM(t *testing.T) {
+	const (
+		StateStartID = iota
+		StateOpened = iota
+		StatePaused = iota
+		StateClosed = iota
+		StateNonExist
+	)
+	const (
+		StateStrOpened = "opened"
+		StateStrPaused = "paused"
+		StateStrClosed = "closed"
+	)
+	const (
+		EventStartID = iota
+		EventOpen = iota
+		EventPause = iota
+		EventClose = iota
+		EventNonExist
+	)
+	const (
+		EventStrOpen = "open"
+		EventStrPause = "paused"
+		EventStrClose = "close"
+	)
+
+	fsm, err := NewFSM(
+		StateClosed,
+		EventMap{
+			EventStartID: EventStartStr,
+			EventOpen: EventStrOpen,
+			EventPause: EventStrPause,
+			EventClose: EventStrClose },
+		StateMap{
+			StateStartID: StateStartStr,
+			StateOpened: StateStrOpened,
+			StatePaused: StateStrPaused,
+			StateClosed: StateStrClosed },
+		Events{
+			{IDEvent: EventOpen, IDsSrc:[]StateID{StateClosed, StatePaused}, IDDst:StateOpened},
+		},
+		Callbacks{
+		})
+	assert.Nil(t, err, "NewFSM() expect success.")
+
+	err = fsm.Event(EventOpen)
+	assert.Nil(t, err, "Transition expect success.")
+	id, idStr := fsm.Current()
+	assert.Equal(t, StateOpened, id, "Transition expect state of StateOpened.")
+	assert.Equal(t, StateStrOpened, idStr, "Transition expect state of StateStrOpened.")
+
+}
+
 
 func Test_newGoFSM_initStateError(t *testing.T) {
 	const (
@@ -1278,37 +1420,44 @@ func ExampleFSM_Transition() {
 
 	// closed ---> opened, success
 	err = fsm.Event(EventOpen)
-	if  err != nil || fsm.Current() != StateStrOpened {
+	id, idStr := fsm.Current()
+	if  err != nil || id != StateOpened || idStr != StateStrOpened {
 		log.Fatalln("Open transition from closed expect success.")
 	}
 	// opened ---> closed, success
 	err = fsm.Event(EventClose)
-	if  err != nil || fsm.Current() != StateStrClosed {
+	id, idStr = fsm.Current()
+	if  err != nil || id != StateClosed || idStr != StateStrClosed {
 		log.Fatalln("Close transition from opened expect success.")
 	}
 
 	// opened ---> paused, success
 	err = fsm.Event(EventOpen)
-	if  err != nil || fsm.Current() != StateStrOpened {
+	id, idStr = fsm.Current()
+	if  err != nil || id != StateOpened || idStr != StateStrOpened {
 		log.Fatalln("Open transition from closed expect success.")
 	}
 	err = fsm.Event(EventPause)
-	if  err != nil || fsm.Current() != StateStrClosed {
+	id, idStr = fsm.Current()
+	if  err != nil || id != StateClosed || idStr != StateStrClosed {
 		log.Fatalln("Pause transition from opened expect success.")
 	}
 
 	// paused --->  opened success
 	err = fsm.Event(EventOpen)
-	if  err != nil || fsm.Current() != StateStrOpened {
+	id, idStr = fsm.Current()
+	if  err != nil || id != StateOpened || idStr != StateStrOpened {
 		log.Fatalln("Open transition from paused expect success.")
 	}
 	// paused --->  closed success
 	err = fsm.Event(EventPause)
-	if  err != nil || fsm.Current() != StateStrClosed {
+	id, idStr = fsm.Current()
+	if  err != nil || id != StateClosed || idStr != StateStrClosed {
 		log.Fatalln("Pause transition from opened expect success.")
 	}
 	err = fsm.Event(EventClose)
-	if  err != nil || fsm.Current() != StateStrClosed {
+	id, idStr = fsm.Current()
+	if  err != nil || id != StateClosed || idStr != StateStrClosed {
 		log.Fatalln("Close transition from paused expect success.")
 	}
 }
@@ -1548,3 +1697,10 @@ func (cb *stubbedCallbackEvent) unstub() {
 	cb.preCBM[cb.callbackID] = cb.preCB
 }
 
+
+type fakeTransitionerObj struct {
+}
+
+func (t fakeTransitionerObj) transition(f *fsmGo) error {
+	return &InternalError{}
+}
