@@ -49,7 +49,7 @@ func TestFSM_AllEventAsyncTransition(t *testing.T) {
 		EventStrClose = "close"
 	)
 
-	fsm, err := NewFSM(
+	fsm, err := newGoFSM(
 		StateClosed,
 		EventMap{
 			EventStartID: EventStartStr,
@@ -82,7 +82,7 @@ func TestFSM_AllEventAsyncTransition(t *testing.T) {
 			{IDCallbackType: CallbackAfterEvent, ID: EventPause}: func(e *Event) { fmt.Println("After event pause.")},
 			{IDCallbackType: CallbackAfterEvent, ID: EventClose}: func(e *Event) { fmt.Println("After event close.")},
 		})
-	assert.NoError(t, err, "NewFSM() expect no error.")
+	assert.NoError(t, err, "newGoFSM() expect no error.")
 
 	// Async transition fail before e.Async() was called in user's callback
 	err = fsm.Transition()
@@ -131,7 +131,7 @@ func TestFSM_SpecificEventAsyncTransition(t *testing.T) {
 		EventStrClose = "close"
 	)
 
-	fsm, err := NewFSM(
+	fsm, err := newGoFSM(
 		StateClosed,
 		EventMap{
 			EventStartID: EventStartStr,
@@ -163,7 +163,7 @@ func TestFSM_SpecificEventAsyncTransition(t *testing.T) {
 			{IDCallbackType: CallbackAfterEvent, ID: EventPause}: func(e *Event) { fmt.Println("After event pause.")},
 			{IDCallbackType: CallbackAfterEvent, ID: EventClose}: func(e *Event) { fmt.Println("After event close.")},
 		})
-	assert.NoError(t, err, "NewFSM() expect no error.")
+	assert.NoError(t, err, "newGoFSM() expect no error.")
 	err = fsm.Event(EventOpen)
 	assert.Equal(t, AsyncError{}, err, "Async() transition expect AsyncError")
 	assert.Equal(t, "async started", err.Error(), "Async Transition expect nil error inside AsyncError")
@@ -210,7 +210,7 @@ func TestFSM_leaveStateCallbacks_CanceledError(t *testing.T) {
 		EventStrClose = "close"
 	)
 
-	fsm, err := NewFSM(
+	fsm, err := newGoFSM(
 		StateClosed,
 		EventMap{
 			EventStartID: EventStartStr,
@@ -246,7 +246,7 @@ func TestFSM_leaveStateCallbacks_CanceledError(t *testing.T) {
 			{IDCallbackType: CallbackAfterEvent, ID: EventPause}: func(e *Event) { fmt.Println("After event pause.")},
 			{IDCallbackType: CallbackAfterEvent, ID: EventClose}: func(e *Event) { fmt.Println("After event close.")},
 		})
-	assert.NoError(t, err, "NewFSM() expect no error.")
+	assert.NoError(t, err, "newGoFSM() expect no error.")
 
 	// closed ---> opened, canceled
 	stbs, stbErr = withStubbedCallbackStateCanceledError(fsm, fsm.Event, EventOpen, CallbackLeaveState, EventClose)
@@ -296,7 +296,7 @@ func TestFSM_beforeEventCallbacks_CanceledError(t *testing.T) {
 		EventStrClose = "close"
 	)
 
-	fsm, err := NewFSM(
+	fsm, err := newGoFSM(
 		StateClosed,
 		EventMap{
 			EventStartID: EventStartStr,
@@ -332,7 +332,7 @@ func TestFSM_beforeEventCallbacks_CanceledError(t *testing.T) {
 			{IDCallbackType: CallbackAfterEvent, ID: EventPause}: func(e *Event) { fmt.Println("After event pause.")},
 			{IDCallbackType: CallbackAfterEvent, ID: EventClose}: func(e *Event) { fmt.Println("After event close.")},
 		})
-	assert.NoError(t, err, "NewFSM() expect no error.")
+	assert.NoError(t, err, "newGoFSM() expect no error.")
 
 	// closed ---> opened, canceled
 	stbe, stbErr = withStubbedCallbackEventCanceledError(fsm, fsm.Event, EventOpen, CallbackBeforeEvent, EventOpen)
@@ -351,7 +351,7 @@ func TestFSM_beforeEventCallbacks_CanceledError(t *testing.T) {
 	assert.Equal(t, StateStrClosed, fsm.Current(), "Cancel transition expect still closed")
 }
 
-func TestNewFSM(t *testing.T) {
+func Test_newGoFSM(t *testing.T) {
 	var (
 		stbe *stubbedCallbackEvent
 		stbs *stubbedCallbackState
@@ -383,7 +383,7 @@ func TestNewFSM(t *testing.T) {
 	)
 
 
-	fsm, err := NewFSM(
+	fsm, err := newGoFSM(
 		StateStartID,
 		EventMap{
 			EventStartID: EventStartStr,
@@ -402,7 +402,7 @@ func TestNewFSM(t *testing.T) {
 	assert.Equal(t, StateStartReserveError{}, err, "Init state should not used reserve StateStartID")
 	assert.Nil(t, fsm, "Init state used reserve StateStartID expect nil fsm")
 
-	fsm, err = NewFSM(
+	fsm, err = newGoFSM(
 		StateClosed,
 		EventMap{
 			EventStartID: EventStartStr,
@@ -438,7 +438,7 @@ func TestNewFSM(t *testing.T) {
 			{IDCallbackType: CallbackAfterEvent, ID: EventPause}: func(e *Event) { fmt.Println("After event pause.")},
 			{IDCallbackType: CallbackAfterEvent, ID: EventClose}: func(e *Event) { fmt.Println("After event close.")},
 		})
-	assert.NoError(t, err, "NewFSM() expect no error.")
+	assert.NoError(t, err, "newGoFSM() expect no error.")
 
 	// Current() Is() Can() Cannot()
 	assert.Equal(t, StateStrClosed, fsm.Current(), "Init state expect closed")
@@ -560,7 +560,7 @@ func TestNewFSM(t *testing.T) {
 	assert.Equal(t, StateStrClosed, fsm.Current(), "Close transition expect closed")
 }
 
-func TestNewFSM_buildUpTransitions_DuplicateTransitionError(t *testing.T) {
+func Test_newGoFSM_buildUpTransitions_DuplicateTransitionError(t *testing.T) {
 	const (
 		StateStartID = iota
 		StateOpened = iota
@@ -586,7 +586,7 @@ func TestNewFSM_buildUpTransitions_DuplicateTransitionError(t *testing.T) {
 		EventStrClose = "close"
 	)
 
-	fsm, err := NewFSM(
+	fsm, err := newGoFSM(
 		StateClosed,
 		EventMap{
 			EventStartID: EventStartStr,
@@ -604,11 +604,11 @@ func TestNewFSM_buildUpTransitions_DuplicateTransitionError(t *testing.T) {
 		},
 		Callbacks{
 		})
-	assert.Equal(t,DuplicateTransitionError{event:EventStrOpen, state:StateStrClosed}, err, "Duplicate transition NewFSM() expect DuplicateTransitionError.")
-	assert.Nil(t, fsm, "Duplicate transition NewFSM() expect nil fsm.")
+	assert.Equal(t,DuplicateTransitionError{event:EventStrOpen, state:StateStrClosed}, err, "Duplicate transition newGoFSM() expect DuplicateTransitionError.")
+	assert.Nil(t, fsm, "Duplicate transition newGoFSM() expect nil fsm.")
 }
 
-func TestNewFSM_validateCallbackMap_StateOutOfRangeError(t *testing.T) {
+func Test_newGoFSM_validateCallbackMap_StateOutOfRangeError(t *testing.T) {
 	const (
 		StateStartID = iota
 		StateOpened = iota
@@ -634,7 +634,7 @@ func TestNewFSM_validateCallbackMap_StateOutOfRangeError(t *testing.T) {
 		EventStrClose = "close"
 	)
 
-	fsm, err := NewFSM(
+	fsm, err := newGoFSM(
 		StateClosed,
 		EventMap{
 			EventStartID: EventStartStr,
@@ -653,12 +653,12 @@ func TestNewFSM_validateCallbackMap_StateOutOfRangeError(t *testing.T) {
 			{IDCallbackType: CallbackBeforeEvent, ID: EventOpen}: func(e *Event) { fmt.Println("Before event open.")},
 			{IDCallbackType: CallbackLeaveState, ID: StateNonExist}: func(e *Event) { fmt.Println("Leave state opened.")},
 		})
-	assert.Equal(t, StateOutOfRangeError{ID: StateNonExist}, err, "Non exist state callback register NewFSM() expect StateOutOfRangeError.")
-	assert.Nil(t, fsm, "Non exist state callback register NewFSM() expect nil fsm.")
+	assert.Equal(t, StateOutOfRangeError{ID: StateNonExist}, err, "Non exist state callback register newGoFSM() expect StateOutOfRangeError.")
+	assert.Nil(t, fsm, "Non exist state callback register newGoFSM() expect nil fsm.")
 
 }
 
-func TestNewFSM_validateCallbackMap_EventOutOfRangeError(t *testing.T) {
+func Test_newGoFSM_validateCallbackMap_EventOutOfRangeError(t *testing.T) {
 	const (
 		StateStartID = iota
 		StateOpened = iota
@@ -684,7 +684,7 @@ func TestNewFSM_validateCallbackMap_EventOutOfRangeError(t *testing.T) {
 		EventStrClose = "close"
 	)
 
-	fsm, err := NewFSM(
+	fsm, err := newGoFSM(
 		StateClosed,
 		EventMap{
 			EventStartID: EventStartStr,
@@ -703,12 +703,12 @@ func TestNewFSM_validateCallbackMap_EventOutOfRangeError(t *testing.T) {
 			{IDCallbackType: CallbackBeforeEvent, ID: EventOpen}: func(e *Event) { fmt.Println("Before event open.")},
 			{IDCallbackType: CallbackBeforeEvent, ID: EventNonExist}: func(e *Event) { fmt.Println("Before event open.")},
 		})
-	assert.Equal(t, EventOutOfRangeError{ID: EventNonExist}, err, "Non exist event callback register NewFSM() expect EventOutOfRangeError.")
-	assert.Nil(t, fsm, "Non exist event callback register NewFSM() expect nil fsm.")
+	assert.Equal(t, EventOutOfRangeError{ID: EventNonExist}, err, "Non exist event callback register newGoFSM() expect EventOutOfRangeError.")
+	assert.Nil(t, fsm, "Non exist event callback register newGoFSM() expect nil fsm.")
 
 }
 
-func TestNewFSM_validateCallbackMap_CallbackTypeOutOfRangeError(t *testing.T) {
+func Test_newGoFSM_validateCallbackMap_CallbackTypeOutOfRangeError(t *testing.T) {
 	const (
 		StateStartID = iota
 		StateOpened = iota
@@ -734,7 +734,7 @@ func TestNewFSM_validateCallbackMap_CallbackTypeOutOfRangeError(t *testing.T) {
 		EventStrClose = "close"
 	)
 
-	fsm, err := NewFSM(
+	fsm, err := newGoFSM(
 		StateClosed,
 		EventMap{
 			EventStartID: EventStartStr,
@@ -752,12 +752,12 @@ func TestNewFSM_validateCallbackMap_CallbackTypeOutOfRangeError(t *testing.T) {
 		Callbacks{
 			{IDCallbackType: CallbackTypeSum, ID: EventOpen}: func(e *Event) { fmt.Println("Before event open.")},
 		})
-	assert.Equal(t,CallbackTypeOutOfRangeError{Type: CallbackTypeSum}, err, "Non exist callback type register NewFSM() expect CallbackTypeOutOfRangeError.")
-	assert.Nil(t, fsm, "Non exist callback type register NewFSM() expect nil fsm.")
+	assert.Equal(t,CallbackTypeOutOfRangeError{Type: CallbackTypeSum}, err, "Non exist callback type register newGoFSM() expect CallbackTypeOutOfRangeError.")
+	assert.Nil(t, fsm, "Non exist callback type register newGoFSM() expect nil fsm.")
 
 }
 
-func TestNewFSM_validateEventTransitionsMap_nonExistSrcStateError(t *testing.T) {
+func Test_newGoFSM_validateEventTransitionsMap_nonExistSrcStateError(t *testing.T) {
 	const (
 		StateStartID = iota
 		StateOpened = iota
@@ -783,7 +783,7 @@ func TestNewFSM_validateEventTransitionsMap_nonExistSrcStateError(t *testing.T) 
 		EventStrClose = "close"
 	)
 
-	fsm, err := NewFSM(
+	fsm, err := newGoFSM(
 		StateClosed,
 		EventMap{
 			EventStartID: EventStartStr,
@@ -800,12 +800,12 @@ func TestNewFSM_validateEventTransitionsMap_nonExistSrcStateError(t *testing.T) 
 		},
 		Callbacks{
 		})
-	assert.Equal(t, StateOutOfRangeError{ID: StateNonExist}, err, "Non exist src state NewFSM() expect StateOutOfRangeError.")
-	assert.Nil(t, fsm, "Non exist src state NewFSM() expect nil fsm.")
+	assert.Equal(t, StateOutOfRangeError{ID: StateNonExist}, err, "Non exist src state newGoFSM() expect StateOutOfRangeError.")
+	assert.Nil(t, fsm, "Non exist src state newGoFSM() expect nil fsm.")
 
 }
 
-func TestNewFSM_validateEventTransitionsMap_nonExistDstStateError(t *testing.T) {
+func Test_newGoFSM_validateEventTransitionsMap_nonExistDstStateError(t *testing.T) {
 	const (
 		StateStartID = iota
 		StateOpened = iota
@@ -831,7 +831,7 @@ func TestNewFSM_validateEventTransitionsMap_nonExistDstStateError(t *testing.T) 
 		EventStrClose = "close"
 	)
 
-	fsm, err := NewFSM(
+	fsm, err := newGoFSM(
 		StateClosed,
 		EventMap{
 			EventStartID: EventStartStr,
@@ -848,12 +848,12 @@ func TestNewFSM_validateEventTransitionsMap_nonExistDstStateError(t *testing.T) 
 		},
 		Callbacks{
 		})
-	assert.Equal(t, StateOutOfRangeError{ID: StateNonExist}, err, "Non exist dst state NewFSM() expect StateOutOfRangeError.")
-	assert.Nil(t, fsm, "Non exist dst state NewFSM() expect nil fsm.")
+	assert.Equal(t, StateOutOfRangeError{ID: StateNonExist}, err, "Non exist dst state newGoFSM() expect StateOutOfRangeError.")
+	assert.Nil(t, fsm, "Non exist dst state newGoFSM() expect nil fsm.")
 
 }
 
-func TestNewFSM_validateEventTransitionsMap_nonExistEventError(t *testing.T) {
+func Test_newGoFSM_validateEventTransitionsMap_nonExistEventError(t *testing.T) {
 	const (
 		StateStartID = iota
 		StateOpened = iota
@@ -879,7 +879,7 @@ func TestNewFSM_validateEventTransitionsMap_nonExistEventError(t *testing.T) {
 		EventStrClose = "close"
 	)
 
-	fsm, err := NewFSM(
+	fsm, err := newGoFSM(
 		StateClosed,
 		EventMap{
 			EventStartID: EventStartStr,
@@ -896,12 +896,12 @@ func TestNewFSM_validateEventTransitionsMap_nonExistEventError(t *testing.T) {
 		},
 		Callbacks{
 		})
-	assert.Equal(t, EventOutOfRangeError{ID: EventNonExist}, err, "Non exist event NewFSM() expect EventOutOfRangeError.")
-	assert.Nil(t, fsm, "Non exist event NewFSM() expect nil fsm.")
+	assert.Equal(t, EventOutOfRangeError{ID: EventNonExist}, err, "Non exist event newGoFSM() expect EventOutOfRangeError.")
+	assert.Nil(t, fsm, "Non exist event newGoFSM() expect nil fsm.")
 
 }
 
-func TestNewFSM_validateEventTransitionsMap_Src_StateStartReserveError(t *testing.T) {
+func Test_newGoFSM_validateEventTransitionsMap_Src_StateStartReserveError(t *testing.T) {
 	const (
 		StateStartID = iota
 		StateOpened = iota
@@ -927,7 +927,7 @@ func TestNewFSM_validateEventTransitionsMap_Src_StateStartReserveError(t *testin
 		EventStrClose = "close"
 	)
 
-	fsm, err := NewFSM(
+	fsm, err := newGoFSM(
 		StateClosed,
 		EventMap{
 			EventStartID: EventStartStr,
@@ -944,12 +944,12 @@ func TestNewFSM_validateEventTransitionsMap_Src_StateStartReserveError(t *testin
 		},
 		Callbacks{
 		})
-	assert.Equal(t, StateStartReserveError{}, err, "Reserve state NewFSM() expect StateStartReserveError.")
-	assert.Nil(t, fsm, "Reserve state NewFSM() expect nil fsm.")
+	assert.Equal(t, StateStartReserveError{}, err, "Reserve state newGoFSM() expect StateStartReserveError.")
+	assert.Nil(t, fsm, "Reserve state newGoFSM() expect nil fsm.")
 
 }
 
-func TestNewFSM_validateEventTransitionsMap_StateStartReserveError(t *testing.T) {
+func Test_newGoFSM_validateEventTransitionsMap_StateStartReserveError(t *testing.T) {
 	const (
 		StateStartID = iota
 		StateOpened = iota
@@ -975,7 +975,7 @@ func TestNewFSM_validateEventTransitionsMap_StateStartReserveError(t *testing.T)
 		EventStrClose = "close"
 	)
 
-	fsm, err := NewFSM(
+	fsm, err := newGoFSM(
 		StateClosed,
 		EventMap{
 			EventStartID: EventStartStr,
@@ -992,12 +992,12 @@ func TestNewFSM_validateEventTransitionsMap_StateStartReserveError(t *testing.T)
 		},
 		Callbacks{
 		})
-	assert.Equal(t, StateStartReserveError{}, err, "Reserve state NewFSM() expect StateStartReserveError.")
-	assert.Nil(t, fsm, "Reserve state NewFSM() expect nil fsm.")
+	assert.Equal(t, StateStartReserveError{}, err, "Reserve state newGoFSM() expect StateStartReserveError.")
+	assert.Nil(t, fsm, "Reserve state newGoFSM() expect nil fsm.")
 
 }
 
-func TestNewFSM_validateEventTransitionsMap_EventStartReserveError(t *testing.T) {
+func Test_newGoFSM_validateEventTransitionsMap_EventStartReserveError(t *testing.T) {
 	const (
 		StateStartID = iota
 		StateOpened = iota
@@ -1023,7 +1023,7 @@ func TestNewFSM_validateEventTransitionsMap_EventStartReserveError(t *testing.T)
 		EventStrClose = "close"
 	)
 
-	fsm, err := NewFSM(
+	fsm, err := newGoFSM(
 		StateClosed,
 		EventMap{
 			EventStartID: EventStartStr,
@@ -1040,12 +1040,12 @@ func TestNewFSM_validateEventTransitionsMap_EventStartReserveError(t *testing.T)
 		},
 		Callbacks{
 		})
-	assert.Equal(t, EventStartReserveError{}, err, "Reserve event NewFSM() expect EventStartReserveError.")
-	assert.Nil(t, fsm, "Reserve event NewFSM() expect nil fsm.")
+	assert.Equal(t, EventStartReserveError{}, err, "Reserve event newGoFSM() expect EventStartReserveError.")
+	assert.Nil(t, fsm, "Reserve event newGoFSM() expect nil fsm.")
 
 }
 
-func TestNewFSM_validateStateMap_StateStartReserveMissingError(t *testing.T) {
+func Test_newGoFSM_validateStateMap_StateStartReserveMissingError(t *testing.T) {
 	const (
 		StateStartID = iota
 		StateOpened = iota
@@ -1071,7 +1071,7 @@ func TestNewFSM_validateStateMap_StateStartReserveMissingError(t *testing.T) {
 		EventStrClose = "close"
 	)
 
-	fsm, err := NewFSM(
+	fsm, err := newGoFSM(
 		StateClosed,
 		EventMap{
 			EventStartID: EventStartStr,
@@ -1087,10 +1087,10 @@ func TestNewFSM_validateStateMap_StateStartReserveMissingError(t *testing.T) {
 		},
 		Callbacks{
 		})
-	assert.Equal(t, StateStartReserveMissingError{}, err, "Missing reserve state NewFSM() expect StateStartReserveMissingError.")
-	assert.Nil(t, fsm, "Missing reserve state NewFSM() expect nil fsm.")
+	assert.Equal(t, StateStartReserveMissingError{}, err, "Missing reserve state newGoFSM() expect StateStartReserveMissingError.")
+	assert.Nil(t, fsm, "Missing reserve state newGoFSM() expect nil fsm.")
 
-	fsm, err = NewFSM(
+	fsm, err = newGoFSM(
 		StateClosed,
 		EventMap{
 			EventStartID: EventStartStr,
@@ -1107,11 +1107,11 @@ func TestNewFSM_validateStateMap_StateStartReserveMissingError(t *testing.T) {
 		},
 		Callbacks{
 		})
-	assert.Equal(t, StateStartReserveMissingError{}, err, "Reserve state without reserve name NewFSM() expect StateStartReserveMissingError.")
-	assert.Nil(t, fsm, "Reserve state without  reserve name NewFSM() expect nil fsm.")
+	assert.Equal(t, StateStartReserveMissingError{}, err, "Reserve state without reserve name newGoFSM() expect StateStartReserveMissingError.")
+	assert.Nil(t, fsm, "Reserve state without  reserve name newGoFSM() expect nil fsm.")
 }
 
-func TestNewFSM_validateEventMap_EventStartReserveMissingError(t *testing.T) {
+func Test_newGoFSM_validateEventMap_EventStartReserveMissingError(t *testing.T) {
 	const (
 		StateStartID = iota
 		StateOpened = iota
@@ -1137,7 +1137,7 @@ func TestNewFSM_validateEventMap_EventStartReserveMissingError(t *testing.T) {
 		EventStrClose = "close"
 	)
 
-	fsm, err := NewFSM(
+	fsm, err := newGoFSM(
 		StateClosed,
 		EventMap{
 			EventOpen: EventStrOpen,
@@ -1153,10 +1153,10 @@ func TestNewFSM_validateEventMap_EventStartReserveMissingError(t *testing.T) {
 		},
 		Callbacks{
 		})
-	assert.Equal(t, EventStartReserveMissingError{}, err, "Missing reserve event NewFSM() expect EventStartReserveMissingError.")
-	assert.Nil(t, fsm, "Missing reserve event NewFSM() expect nil fsm.")
+	assert.Equal(t, EventStartReserveMissingError{}, err, "Missing reserve event newGoFSM() expect EventStartReserveMissingError.")
+	assert.Nil(t, fsm, "Missing reserve event newGoFSM() expect nil fsm.")
 
-	fsm, err = NewFSM(
+	fsm, err = newGoFSM(
 		StateClosed,
 		EventMap{
 			EventStartID: "hello",
@@ -1173,12 +1173,12 @@ func TestNewFSM_validateEventMap_EventStartReserveMissingError(t *testing.T) {
 		},
 		Callbacks{
 		})
-	assert.Equal(t, EventStartReserveMissingError{}, err, "Reserve event without reserve name NewFSM() expect EventStartReserveMissingError.")
-	assert.Nil(t, fsm, "Reserve event without  reserve name NewFSM() expect nil fsm.")
+	assert.Equal(t, EventStartReserveMissingError{}, err, "Reserve event without reserve name newGoFSM() expect EventStartReserveMissingError.")
+	assert.Nil(t, fsm, "Reserve event without  reserve name newGoFSM() expect nil fsm.")
 }
 
 
-func TestNewFSM_initStateError(t *testing.T) {
+func Test_newGoFSM_initStateError(t *testing.T) {
 	const (
 		StateStartID = iota
 		StateOpened = iota
@@ -1204,7 +1204,7 @@ func TestNewFSM_initStateError(t *testing.T) {
 		EventStrClose = "close"
 	)
 
-	fsm, err := NewFSM(
+	fsm, err := newGoFSM(
 		StateNonExist,
 		EventMap{
 			EventStartID: EventStartStr,
@@ -1220,8 +1220,8 @@ func TestNewFSM_initStateError(t *testing.T) {
 		},
 		Callbacks{
 		})
-	assert.Equal(t, StateOutOfRangeError{ID: StateNonExist}, err, "Non exist init state NewFSM() expect StateOutOfRangeError.")
-	assert.Nil(t, fsm, "Non exist init state NewFSM() expect nil fsm.")
+	assert.Equal(t, StateOutOfRangeError{ID: StateNonExist}, err, "Non exist init state newGoFSM() expect StateOutOfRangeError.")
+	assert.Nil(t, fsm, "Non exist init state newGoFSM() expect nil fsm.")
 
 }
 
@@ -1249,7 +1249,7 @@ func ExampleFSM_Transition() {
 		EventStrClose = "close"
 	)
 
-	fsm, err := NewFSM(
+	fsm, err := newGoFSM(
 		StateClosed,
 		EventMap{
 			EventStartID: EventStartStr,
@@ -1273,7 +1273,7 @@ func ExampleFSM_Transition() {
 			})
 
 	if  err != nil {
-		log.Fatalln("NewFSM() expect no error.")
+		log.Fatalln("newGoFSM() expect no error.")
 	}
 
 	// closed ---> opened, success
@@ -1331,7 +1331,7 @@ func (cb *stubbedCallbackStateCanceledError) EventCall(event * Event)  {
 	event.Cancel(errors.New("stub callback canceled"))
 }
 
-func withStubbedCallbackStateCanceledError(fsm *FSM, eventFunc func(eventID int, args ...interface{}) error,eventID EventID, callbackType CallbackType, callbackID CBKey) (*stubbedCallbackStateCanceledError, error) {
+func withStubbedCallbackStateCanceledError(fsm *fsmGo, eventFunc func(eventID int, args ...interface{}) error,eventID EventID, callbackType CallbackType, callbackID CBKey) (*stubbedCallbackStateCanceledError, error) {
 	var (
 		err error
 		stb = &stubbedCallbackStateCanceledError{}
@@ -1346,7 +1346,7 @@ func withStubbedCallbackStateCanceledError(fsm *FSM, eventFunc func(eventID int,
 	return stb, nil
 }
 
-func (cb *stubbedCallbackStateCanceledError) stub(fsm *FSM, callbackType CallbackType, callbackID CBKey) error {
+func (cb *stubbedCallbackStateCanceledError) stub(fsm *fsmGo, callbackType CallbackType, callbackID CBKey) error {
 	var (
 		ok bool
 	)
@@ -1390,7 +1390,7 @@ func (cb *stubbedCallbackState) EventCall(event * Event)  {
 	cb.countCalled++
 }
 
-func withStubbedCallbackState(fsm *FSM, eventFunc func(eventID int, args ...interface{}) error,eventID EventID, callbackType CallbackType, callbackID CBKey) (*stubbedCallbackState, error) {
+func withStubbedCallbackState(fsm *fsmGo, eventFunc func(eventID int, args ...interface{}) error,eventID EventID, callbackType CallbackType, callbackID CBKey) (*stubbedCallbackState, error) {
 	var (
 		err error
 		stb = &stubbedCallbackState{}
@@ -1405,7 +1405,7 @@ func withStubbedCallbackState(fsm *FSM, eventFunc func(eventID int, args ...inte
 	return stb, nil
 }
 
-func (cb *stubbedCallbackState) stub(fsm *FSM, callbackType CallbackType, callbackID CBKey) error {
+func (cb *stubbedCallbackState) stub(fsm *fsmGo, callbackType CallbackType, callbackID CBKey) error {
 	var (
 		ok bool
 	)
@@ -1449,7 +1449,7 @@ func (cb *stubbedCallbackEventCanceledError) EventCall(event * Event)  {
 	event.Cancel(errors.New("stub callback canceled"))
 }
 
-func withStubbedCallbackEventCanceledError(fsm *FSM, eventFunc func(eventID int, args ...interface{}) error,eventID EventID, callbackType CallbackType, callbackID CBKey) (*stubbedCallbackEventCanceledError, error) {
+func withStubbedCallbackEventCanceledError(fsm *fsmGo, eventFunc func(eventID int, args ...interface{}) error,eventID EventID, callbackType CallbackType, callbackID CBKey) (*stubbedCallbackEventCanceledError, error) {
 	var (
 		err error
 		stb = &stubbedCallbackEventCanceledError{}
@@ -1464,7 +1464,7 @@ func withStubbedCallbackEventCanceledError(fsm *FSM, eventFunc func(eventID int,
 	return stb, nil
 }
 
-func (cb *stubbedCallbackEventCanceledError) stub(fsm *FSM, callbackType CallbackType, callbackID CBKey) error {
+func (cb *stubbedCallbackEventCanceledError) stub(fsm *fsmGo, callbackType CallbackType, callbackID CBKey) error {
 	var (
 		ok bool
 	)
@@ -1507,7 +1507,7 @@ func (cb *stubbedCallbackEvent) EventCall(event * Event)  {
 	cb.countCalled++
 }
 
-func withStubbedCallbackEvent(fsm *FSM, eventFunc func(eventID int, args ...interface{}) error,eventID EventID, callbackType CallbackType, callbackID CBKey) (*stubbedCallbackEvent, error) {
+func withStubbedCallbackEvent(fsm *fsmGo, eventFunc func(eventID int, args ...interface{}) error,eventID EventID, callbackType CallbackType, callbackID CBKey) (*stubbedCallbackEvent, error) {
 	var (
 		err error
 		stb = &stubbedCallbackEvent{}
@@ -1522,7 +1522,7 @@ func withStubbedCallbackEvent(fsm *FSM, eventFunc func(eventID int, args ...inte
 	return stb, nil
 }
 
-func (cb *stubbedCallbackEvent) stub(fsm *FSM, callbackType CallbackType, callbackID CBKey) error {
+func (cb *stubbedCallbackEvent) stub(fsm *fsmGo, callbackType CallbackType, callbackID CBKey) error {
 	var (
 		ok bool
 	)

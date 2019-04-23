@@ -26,10 +26,20 @@ package fsm
 
 import "sync"
 
+type FSM interface {
+	Event(eventID int, args ...interface{}) error
+	Transition() error
+	Current() string
+	Is(stateID int) bool
+	SetState(stateID int) error
+	Can(eventID int) bool
+	Cannot(eventID int) bool
+	AvailableTransitions() []string
+}
+
 // transitioner is an interface for the FSM's transition function.
 type transitioner interface {
-	//transition(*FSM) error
-	transition() error
+	transition(*fsmGo) error
 }
 
 type CallbackType = int
@@ -118,7 +128,7 @@ type CallbackMap map[CBKey]Callback
 // FSM is the state machine that holds the current state.
 //
 // It has to be created with NewFSM to function properly.
-type FSM struct {
+type fsmGo struct {
 	// current is the state that the FSM is currently in.
 	//current string
 	current StateID
@@ -133,7 +143,7 @@ type FSM struct {
 	// or when Transition is called in an asynchronous state transition.
 	transition func()
 	// transitionerObj calls the FSM's transition() function.
-	// transitionRunner transitioner
+	transitionerObj transitioner
 
 	// stateMu guards access to the current state.
 	stateMu sync.RWMutex
@@ -154,7 +164,6 @@ type FSM struct {
 	// map of event ID to after event callback
 	callbacksAfterEvent		CallbackMap
 }
-
 
 // NewFSM constructs a FSM from maps of events, states, and callbacks, ane set of transitions.
 //
@@ -188,8 +197,14 @@ type FSM struct {
 // 2. <EventStartID> - called after event named <EventStartID>
 //
 func NewFSM(initState StateID, eventMap EventMap, stateMap StateMap,
+	eventTransitions []EventDesc,
+	callbackDescMap map[CallBackDesc]CallbackFunc) (FSM, error) {
+		return newGoFSM(initState, eventMap, stateMap, eventTransitions, callbackDescMap)
+}
+
+func newGoFSM(initState StateID, eventMap EventMap, stateMap StateMap,
 			eventTransitions []EventDesc,
-			callbackDescMap map[CallBackDesc]CallbackFunc) (*FSM, error) {
+			callbackDescMap map[CallBackDesc]CallbackFunc) (*fsmGo, error) {
 	var (
 		ok bool
 		err error
@@ -218,11 +233,12 @@ func NewFSM(initState StateID, eventMap EventMap, stateMap StateMap,
 	}
 
 
-	f := &FSM{
+	f := &fsmGo{
 		eventMap:		eventMap,
 		stateMap:		stateMap,
 		current:		initState,
 		transitions:	make(map[eKey]StateID),
+		transitionerObj: &transitionerStruct{},
 		callbacksBeforeEvent:		make(CallbackMap),
 		callbacksLeaveState:		make(CallbackMap),
 		callbacksEnterState:		make(CallbackMap),
@@ -238,7 +254,7 @@ func NewFSM(initState StateID, eventMap EventMap, stateMap StateMap,
 	return f, nil
 }
 
-func (f *FSM) buildUpCallbackMap(callbackDescMap map[CallBackDesc]CallbackFunc) {
+func (f *fsmGo) buildUpCallbackMap(callbackDescMap map[CallBackDesc]CallbackFunc) {
 	var (
 		desc CallBackDesc
 		cbf CallbackFunc
@@ -258,7 +274,7 @@ func (f *FSM) buildUpCallbackMap(callbackDescMap map[CallBackDesc]CallbackFunc) 
 	}
 }
 
-func (f *FSM) buildUpTransitions(eventTransitions []EventDesc) error {
+func (f *fsmGo) buildUpTransitions(eventTransitions []EventDesc) error {
 	var (
 		ok bool
 		ed EventDesc
@@ -342,14 +358,14 @@ func validateCallbackMap(callbackDescMap map[CallBackDesc]CallbackFunc, eventMap
 }
 
 // Current returns the current state of the FSM.
-func (f *FSM) Current() string {
+func (f *fsmGo) Current() string {
 	f.stateMu.RLock()
 	defer f.stateMu.RUnlock()
 	return f.stateMap[f.current]
 }
 
 // Is returns true if state is the current state.
-func (f *FSM) Is(stateID int) bool {
+func (f *fsmGo) Is(stateID int) bool {
 	f.stateMu.RLock()
 	defer f.stateMu.RUnlock()
 	return stateID == f.current
@@ -357,7 +373,7 @@ func (f *FSM) Is(stateID int) bool {
 
 // SetState allows the user to move to the given state from current state.
 // The call does not trigger any callbacks, if defined.
-func (f *FSM) SetState(stateID int) error {
+func (f *fsmGo) SetState(stateID int) error {
 
 	if stateID == StateStartID {
 		return StateStartReserveError{}
@@ -374,7 +390,7 @@ func (f *FSM) SetState(stateID int) error {
 }
 
 // Can returns true if event can occur in the current state.
-func (f *FSM) Can(eventID int) bool {
+func (f *fsmGo) Can(eventID int) bool {
 	f.stateMu.RLock()
 	defer f.stateMu.RUnlock()
 	_, ok := f.transitions[eKey{eventID, f.current}]
@@ -383,7 +399,7 @@ func (f *FSM) Can(eventID int) bool {
 
 // AvailableTransitions returns a list of transitions avilable in the
 // current state.
-func (f *FSM) AvailableTransitions() []string {
+func (f *fsmGo) AvailableTransitions() []string {
 	f.stateMu.RLock()
 	defer f.stateMu.RUnlock()
 	var transitions []string
@@ -397,7 +413,7 @@ func (f *FSM) AvailableTransitions() []string {
 
 // Cannot returns true if event can not occure in the current state.
 // It is a convenience method to help code read nicely.
-func (f *FSM) Cannot(eventID int) bool {
+func (f *fsmGo) Cannot(eventID int) bool {
 	return !f.Can(eventID)
 }
 
@@ -418,7 +434,7 @@ func (f *FSM) Cannot(eventID int) bool {
 //
 // The last error should never occur in this situation and is a sign of an
 // internal bug.
-func (f *FSM) Event(eventID int, args ...interface{}) error {
+func (f *fsmGo) Event(eventID int, args ...interface{}) error {
 	var (
 		ok bool
 		eventName string
@@ -476,20 +492,34 @@ func (f *FSM) Event(eventID int, args ...interface{}) error {
 	f.stateMu.RUnlock()
 	err = f.doTransition()
 	f.stateMu.RLock()
+	if err != nil {
+		return InternalError{}
+	}
 
 	return e.Err
 }
 
 // Transition wraps transitioner.transition.
-func (f *FSM) Transition() error {
+func (f *fsmGo) Transition() error {
 	f.eventMu.Lock()
 	defer f.eventMu.Unlock()
 	return f.doTransition()
 }
 
 // doTransition wraps transitioner.transition.
-func (f *FSM) doTransition() error {
+func (f *fsmGo) doTransition() error {
+	return f.transitionerObj.transition(f)
+}
 
+// transitionerStruct is the default implementation of the transitioner
+// interface. Other implementations can be swapped in for testing.
+type transitionerStruct struct{}
+
+// Transition completes an asynchrounous state change.
+//
+// The callback for leave_<STATE> must prviously have called Async on its
+// event to have initiated an asynchronous state transition.
+func (t transitionerStruct) transition(f *fsmGo) error {
 	if f.transition == nil {
 		return NotInTransitionError{}
 	}
@@ -498,9 +528,10 @@ func (f *FSM) doTransition() error {
 	return nil
 }
 
+
 // beforeEventCallbacks calls the before_ callbacks, first the named then the
 // general version.
-func (f *FSM) beforeEventCallbacks(e *Event) error {
+func (f *fsmGo) beforeEventCallbacks(e *Event) error {
 	if fn, ok := f.callbacksBeforeEvent[CBKey(e.Event)]; ok && fn != nil {
 		fn.EventCall(e)
 		if e.canceled {
@@ -519,7 +550,7 @@ func (f *FSM) beforeEventCallbacks(e *Event) error {
 
 // leaveStateCallbacks calls the leave_ callbacks, first the named then the
 // general version.
-func (f *FSM) leaveStateCallbacks(e *Event) error {
+func (f *fsmGo) leaveStateCallbacks(e *Event) error {
 	if fn, ok := f.callbacksLeaveState[CBKey(f.current)]; ok && fn != nil {
 		fn.EventCall(e)
 		if e.canceled {
@@ -542,7 +573,7 @@ func (f *FSM) leaveStateCallbacks(e *Event) error {
 
 // enterStateCallbacks calls the enter_ callbacks, first the named then the
 // general version.
-func (f *FSM) enterStateCallbacks(e *Event) {
+func (f *fsmGo) enterStateCallbacks(e *Event) {
 	if fn, ok := f.callbacksEnterState[CBKey(f.current)]; ok && fn != nil {
 		fn.EventCall(e)
 	}
@@ -553,7 +584,7 @@ func (f *FSM) enterStateCallbacks(e *Event) {
 
 // afterEventCallbacks calls the after_ callbacks, first the named then the
 // general version.
-func (f *FSM) afterEventCallbacks(e *Event) {
+func (f *fsmGo) afterEventCallbacks(e *Event) {
 	if fn, ok := f.callbacksAfterEvent[CBKey(e.Event)]; ok && fn != nil {
 		fn.EventCall(e)
 	}
